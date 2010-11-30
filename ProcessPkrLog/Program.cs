@@ -6,6 +6,7 @@ using System.IO;
 using Moserware.Skills;
 using System.Threading.Tasks;
 using Moserware.Skills.TrueSkill;
+using System.Net;
 
 namespace ProcessPkrLog
 {
@@ -15,7 +16,15 @@ namespace ProcessPkrLog
 		{
 			Dictionary<string, Player> players = new Dictionary<string, Player>();
 			Dictionary<string, int> plays = new Dictionary<string, int>();
-			StreamReader reader = new StreamReader(args[0]);
+			StreamReader reader;
+			if (args[0].StartsWith("http://"))
+			{
+				reader = new StreamReader(new WebClient().OpenRead(args[0]));
+			}
+			else
+			{
+				reader = new StreamReader(args[0]);
+			}
 			StreamWriter writer = new StreamWriter(args[1], false);
 			List<Dictionary<string, List<int>>> Games = new List<Dictionary<string, List<int>>>();
 
@@ -101,17 +110,20 @@ namespace ProcessPkrLog
 			foreach (var game in Games)
 			{
 				w++;
-
-				
-
-				IEnumerable<IDictionary<Player, Rating>> sc = game.
-					Where(pair => players.ContainsKey(pair.Key)).
-					Select(pair => convert(players[pair.Key], scores[players[pair.Key]], pair.Value.OrderBy(val => val).Skip(1).Select(id => v.ElementAtOrDefault(Convert.ToInt32(id * scale) - 1)).Select(item => item != null ? item : v.First())));
-				var newscores = TrueSkillCalculator.CalculateNewRatings<Player>(GameInfo.DefaultGameInfo, sc,
-					game.
-						Select(pair => pair.Value[0]).
-						ToArray());
-
+				var oldscores = scores.ToDictionary(score => score.Key, score => score.Value.ConservativeRating);
+				IEnumerable<IDictionary<Player, Rating>> sc = game.SelectMany(pair => new IDictionary<Player, Rating>[] { ConvertToDic(new KeyValuePair<Player, Rating>(players[pair.Key], scores[players[pair.Key]])) }.Union(pair.Value.Skip(1).Select(pos => ConvertToDic(new KeyValuePair<Player, Rating>(new Player(pair.Key + "." + Guid.NewGuid().ToString(), players[pair.Key].PartialPlayPercentage, players[pair.Key].PartialUpdatePercentage), scores[players[pair.Key]]))))).OrderBy(Pair => Pair.First().Key.Id);
+				//Where(pair => players.ContainsKey(pair.Key)).
+				//Select(pair => convert(players[pair.Key], scores[players[pair.Key]], pair.Value.OrderBy(val => val).Skip(1).Select(id => v.ElementAtOrDefault(Convert.ToInt32(id * scale) - 1)).Select(item => item != null ? item : v.First()))).SelectMany(dict => dict.Select(pair => ConvertToDic(pair)));
+				var poses = game.OrderBy(Pair => Pair.Key).
+						SelectMany(pair => pair.Value).
+						ToArray();
+				var newscores = TrueSkillCalculator.CalculateNewRatings<Player>(GameInfo.DefaultGameInfo, sc, poses);
+				newscores = newscores.GroupBy(pair => string.Join("", pair.Key.Id.ToString().TakeWhile(ch => ch != '.'))).ToDictionary(grp => players[grp.Key], grp => new Rating( grp.Average(pair => pair.Value.Mean), grp.Average(pair => pair.Value.StandardDeviation)));
+				/*
+				 *
+				 scores[players[grp.Key]].Mean - grp.Sum(pair => scores[players[grp.Key]].Mean - pair.Value.Mean),
+					scores[players[grp.Key]].StandardDeviation - grp.Sum(pair => scores[players[grp.Key]].StandardDeviation - pair.Value.StandardDeviation)
+				 */
 				foreach (var item in newscores)
 				{
 					if (players.ContainsKey(item.Key.Id.ToString()))
@@ -120,7 +132,7 @@ namespace ProcessPkrLog
 					}
 				}
 
-				writer.WriteLine(w.ToString() + "," + players.Values.Where(name => !playersToCareAbout.Contains(name.Id)).Select(name => scores[name].ConservativeRating.ToString()).Aggregate((first, second) => string.IsNullOrEmpty(first) ? second : string.Format("{0}, {1}", first, second)));
+				writer.WriteLine(w.ToString() + "," + players.Values.Where(name => !playersToCareAbout.Contains(name.Id)).Select(name => scores[name].ConservativeRating == oldscores[name] ? string.Empty : scores[name].ConservativeRating.ToString()).Aggregate((first, second) => first == null ? second : string.Format("{0}, {1}", first, second)));
 			}
 
 
@@ -142,10 +154,17 @@ namespace ProcessPkrLog
 			{
 				foreach (var item in repeats)
 				{
-					rat.Add(new Player(new Guid().ToString()), item);
+					rat.Add(new Player(p.Id + "." + Guid.NewGuid().ToString()), r);
 				}
 			}
 			return rat;
+		}
+
+		public static IDictionary<a, b> ConvertToDic<a, b>(KeyValuePair<a, b> kvp)
+		{
+			Dictionary<a, b> dict = new Dictionary<a, b>();
+			dict.Add(kvp.Key, kvp.Value);
+			return dict;
 		}
 	}
 }
