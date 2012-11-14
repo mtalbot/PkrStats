@@ -26,13 +26,16 @@ namespace ProcessPkrLog
 				reader = new StreamReader(args[0]);
 			}
 			StreamWriter writer = new StreamWriter(args[1], false);
-			List<Dictionary<string, List<int>>> Games = new List<Dictionary<string, List<int>>>();
+			Dictionary<DateTime, Dictionary<string, List<int>>> Games = new Dictionary<DateTime, Dictionary<string, List<int>>>();
 
 			Dictionary<string, List<int>> currentGame = new Dictionary<string, List<int>>();
 
 			string LastLine = "";
 
 			int c = 0;
+			int year = 2009;
+			int prevousMonth = 0;
+			DateTime gamePlayed = DateTime.UtcNow;
 			while (!reader.EndOfStream)
 			{
 				string line = reader.ReadLine().ToLower();
@@ -55,6 +58,7 @@ namespace ProcessPkrLog
 				if (line == "walking\ndave") { line = "walking dave"; }
 				if (line == "bladders") { line = "blads"; }
 				if (line == "aussie dan") { line = "dan oz"; }
+				if (line == "kitchen" || line == "paul") { line = "paul"; }
 
 				if (!string.IsNullOrEmpty(line))
 				{
@@ -82,11 +86,28 @@ namespace ProcessPkrLog
 							plays[line]++;
 						}
 					}
+					else if (c == 0)
+					{
+						int[] dateParts = line.
+							Split(' ')[0].
+							Split('/').
+							Select(datePart => Convert.ToInt32(datePart)).
+							ToArray();
+
+						if (dateParts[1] < prevousMonth)
+						{
+							year++;
+						}
+
+						prevousMonth = dateParts[1];
+
+						gamePlayed = new DateTime(year, dateParts[1], dateParts[0]);
+					}
 				}
 				else if (string.IsNullOrEmpty(LastLine))
 				{
 					c = -1;
-					Games.Add(currentGame);
+					Games.Add(gamePlayed, currentGame);
 					currentGame = new Dictionary<string, List<int>>();
 				}
 
@@ -96,26 +117,38 @@ namespace ProcessPkrLog
 
 			if (c > 1)
 			{
-				Games.Add(currentGame);
+				Games.Add(gamePlayed, currentGame);
 			}
-
-			string[] playersToCareAbout = plays.Where(pair => pair.Value < (Games.Count / 10)).Select(pair => pair.Key).ToArray();
 
 			IDictionary<Player, Rating> scores = players.Values.ToDictionary(pair => pair, pair => GameInfo.DefaultGameInfo.DefaultRating);
 
-			writer.WriteLine("," + players.Keys.Where(name => !playersToCareAbout.Contains(name)).Aggregate((first, second) => string.IsNullOrEmpty(first) ? second : string.Format("{0}, {1}", first, second)));
-
 			int w = 0;
-
+			Dictionary<DateTime, Dictionary<Player, double>> allScores = new Dictionary<DateTime, Dictionary<Player, double>>();
 			foreach (var game in Games)
 			{
 				w++;
 				var oldscores = scores.ToDictionary(score => score.Key, score => score.Value.ConservativeRating);
-				IEnumerable<IDictionary<Player, Rating>> sc = game.SelectMany(pair => new IDictionary<Player, Rating>[] { ConvertToDic(new KeyValuePair<Player, Rating>(players[pair.Key], scores[players[pair.Key]])) }.Union(pair.Value.Skip(1).Select(pos => ConvertToDic(new KeyValuePair<Player, Rating>(new Player(pair.Key + "." + Guid.NewGuid().ToString(), players[pair.Key].PartialPlayPercentage, players[pair.Key].PartialUpdatePercentage), scores[players[pair.Key]]))))).OrderBy(Pair => Pair.First().Key.Id);
+				IEnumerable<IDictionary<Player, Rating>> sc = game.
+					Value.
+					SelectMany(pair => 
+						new IDictionary<Player, Rating>[] 
+						{ 
+							ConvertToDic(new KeyValuePair<Player, Rating>(players[pair.Key], scores[players[pair.Key]])) 
+						}.
+						Union
+						(
+							pair.
+							Value.
+							Skip(1).
+							Select
+							(
+								pos => ConvertToDic(new KeyValuePair<Player, Rating>(new Player(pair.Key + "." + Guid.NewGuid().ToString(), players[pair.Key].PartialPlayPercentage, players[pair.Key].PartialUpdatePercentage), scores[players[pair.Key]])))
+							)
+						).OrderBy(Pair => Pair.First().Key.Id);
 				//Where(pair => players.ContainsKey(pair.Key)).
 				//Select(pair => convert(players[pair.Key], scores[players[pair.Key]], pair.Value.OrderBy(val => val).Skip(1).Select(id => v.ElementAtOrDefault(Convert.ToInt32(id * scale) - 1)).Select(item => item != null ? item : v.First()))).SelectMany(dict => dict.Select(pair => ConvertToDic(pair)));
-				var poses = game.OrderBy(Pair => Pair.Key).
-						SelectMany(pair => pair.Value).
+				var poses = game.Value.OrderBy(Pair => Pair.Key).
+						SelectMany(pair => pair.Value.Select(val => Convert.ToInt32(11 - (10.0 / val)))).
 						ToArray();
 				var newscores = TrueSkillCalculator.CalculateNewRatings<Player>(GameInfo.DefaultGameInfo, sc, poses);
 				newscores = newscores.GroupBy(pair => string.Join("", pair.Key.Id.ToString().TakeWhile(ch => ch != '.'))).ToDictionary(grp => players[grp.Key], grp => new Rating( grp.Average(pair => pair.Value.Mean), grp.Average(pair => pair.Value.StandardDeviation)));
@@ -132,10 +165,40 @@ namespace ProcessPkrLog
 					}
 				}
 
-				writer.WriteLine(w.ToString() + "," + players.Values.Where(name => !playersToCareAbout.Contains(name.Id)).Select(name => scores[name].ConservativeRating == oldscores[name] ? string.Empty : scores[name].ConservativeRating.ToString()).Aggregate((first, second) => first == null ? second : string.Format("{0}, {1}", first, second)));
+				allScores.Add(game.Key, scores.ToDictionary(score => score.Key, score => score.Value.ConservativeRating));
 			}
 
+			var avg = scores.Average(name => name.Value.ConservativeRating);
+			avg = avg - (avg / 10);
+			int gameCount = 80;
 
+			var recentPlayers = Games.
+				Values.
+				Skip(Games.Count - gameCount).
+				SelectMany(game => game.Keys).
+				GroupBy(grp => grp).
+				Where(grp => grp.Count() > 10).
+				Select(grp => grp.Key).
+				ToArray();
+			string[] playersToCareAbout = plays.
+				Where(pair => !recentPlayers.Contains(pair.Key)).
+				Select(pair => pair.Key).
+				Union(
+					scores.
+						Where(name=> name.Value.StandardDeviation > 1).
+						Select(name => (string)name.Key.Id)
+				).
+				Distinct().
+				ToArray();
+
+			writer.WriteLine("	" + players.Keys.Where(name => !playersToCareAbout.Contains(name)).Aggregate((first, second) => string.IsNullOrEmpty(first) ? second : string.Format("{0}	{1}", first, second)));
+
+			foreach (var Game in allScores.Skip(allScores.Count - gameCount))
+			{
+				writer.WriteLine(Game.Key.ToString("yyyy/MM/dd") + "	" + players.Values.Where(name => !playersToCareAbout.Contains(name.Id)).Select(name => Game.Value[name].ToString()).Aggregate((first, second) => first == null ? second : string.Format("{0}	{1}", first, second)));
+			}
+
+			
 
 			foreach (var score in scores.Where(name => !playersToCareAbout.Contains(name.Key.Id)).OrderBy(pair => pair.Value.ConservativeRating))
 			{
