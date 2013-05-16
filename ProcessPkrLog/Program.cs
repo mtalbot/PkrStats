@@ -170,7 +170,7 @@ namespace ProcessPkrLog
 
 			var avg = scores.Average(name => name.Value.ConservativeRating);
 			avg = avg - (avg / 10);
-			int gameCount = 80;
+			int gameCount = 150;
 
 			var recentPlayers = Games.
 				Values.
