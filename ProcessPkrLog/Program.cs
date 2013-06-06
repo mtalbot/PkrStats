@@ -59,6 +59,7 @@ namespace ProcessPkrLog
 				if (line == "bladders") { line = "blads"; }
 				if (line == "aussie dan") { line = "dan oz"; }
 				if (line == "kitchen" || line == "paul") { line = "paul"; }
+				if (line == "jeff" || line == "jefferson") { line = "jeff"; }
 
 				if (!string.IsNullOrEmpty(line))
 				{
