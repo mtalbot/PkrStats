@@ -108,6 +108,10 @@ namespace ProcessPkrLog
 				else if (string.IsNullOrEmpty(LastLine))
 				{
 					c = -1;
+					while (Games.ContainsKey(gamePlayed))
+					{
+						gamePlayed = gamePlayed.AddMilliseconds(1);
+					}
 					Games.Add(gamePlayed, currentGame);
 					currentGame = new Dictionary<string, List<int>>();
 				}
