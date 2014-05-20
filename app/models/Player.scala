@@ -1,3 +1,11 @@
 package models
 
-case class Player(val id: Long, val name: String, val nicknames: List[String], val email: Option[String], val password: Option[Array[Byte]], val salt: Option[Array[Byte]]) extends Model[Long]
+import AuthenticationType._
+
+case class Player(
+    val id: Long, 
+    val name: String, 
+    val nicknames: List[String], 
+    val authId: Option[String], 
+    val authToken: Option[Array[Byte]], 
+    val authType: Option[AuthenticationType]) extends Model[Long]

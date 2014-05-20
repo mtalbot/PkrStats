@@ -7,16 +7,15 @@ import data.tables.PlayerTable.{mapper => playerMapper}
 import models.Game
 import models.Player
 import data.RequiresDatabaseConnection
+import data.helpers.MappedColumnModelID
 
 object GameResultTable extends SuppliesTableQuery[GameResultTable, GameResult, Long] with MappedColumnModelID[GameResult] {
   val tableQuery = TableQuery[GameResultTable]
   
-  implicit val mapper = MappedColumnModelID[GameResult, Long](this)
-  
-  override def getById(id: Long)(implicit session: Session): Option[GameResult] = tableQuery.findBy(_.id).apply(id).firstOption
+  implicit val mapper = MappedColumnModelID[GameResultTable, GameResult, Long](this.tableQuery)
 }
 
-class GameResultTable(tag: Tag) extends Table[GameResult](tag, "GAME_RESULTS") { 
+class GameResultTable(tag: Tag) extends Table[GameResult](tag, "GAME_RESULTS") with IdTable[Long] { 
 	val id = column[Long]("ID", O.PrimaryKey, O.AutoInc)
 	val game = column[Game]("GAME_ID", O.NotNull)
 	val position = column[Int]("POSITION", O.NotNull)

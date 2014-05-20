@@ -37,7 +37,7 @@ class GameDAO extends Actor with RequiresDatabaseConnection {
         val q = GameTable.tableQuery.findBy(_.id)
         
         
-        val q2 = GameResultTable.tableQuery.findBy(_.game)
+        val q2 = GameResultTable.tableQuery.findBy(_.game.asColumnOf[Long])
 
         q(key).delete
         q2(key).delete
@@ -48,7 +48,7 @@ class GameDAO extends Actor with RequiresDatabaseConnection {
     case GameDAO.Get(key) => {
       this.db.withSession { implicit session =>
         val q = GameTable.tableQuery.findBy(_.id)
-        val q2 = GameResultTable.tableQuery.findBy(_.game)
+        val q2 = GameResultTable.tableQuery.findBy(_.game.asColumnOf[Long])
         val res = (q(key).firstOption, q2(key).list)
         sender ! res
       }

@@ -3,16 +3,15 @@ package data.tables
 import scala.slick.driver.JdbcDriver.simple._
 import models._
 import data.tables.GameResultTable.mapper
+import data.helpers.MappedColumnModelID
 
 object SkillEntryTable extends SuppliesTableQuery[SkillEntryTable, SkillEntry, Long] with MappedColumnModelID[SkillEntry] {
-  val tableQuery = TableQuery[SkillEntryTable]
+  override val tableQuery = TableQuery[SkillEntryTable]
 
-  implicit val mapper = MappedColumnModelID[SkillEntry, Long](this)
-  
-  override def getById(id: Long)(implicit session: Session): Option[SkillEntry] = tableQuery.findBy(_.id).apply(id).firstOption
+  implicit override val mapper = MappedColumnModelID[SkillEntryTable, SkillEntry, Long](this.tableQuery)
 }
 
-class SkillEntryTable(tag: Tag) extends Table[SkillEntry](tag, "SKILL_ENTRIES") {
+class SkillEntryTable(tag: Tag) extends Table[SkillEntry](tag, "SKILL_ENTRIES") with IdTable[Long] {
   val id = column[Long]("ID", O.PrimaryKey, O.AutoInc)
   val game = column[GameResult]("GAME_RESULT_ID", O.NotNull)
   val mean = column[Double]("MEAN", O.NotNull)
