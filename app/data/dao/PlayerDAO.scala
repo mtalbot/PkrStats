@@ -22,9 +22,7 @@ class PlayerDAO extends Actor with RequiresDatabaseConnection {
     }
     case PlayerDAO.Delete(key) => db.withSession {
       implicit session =>
-        getQuery(key).delete
-
-        sender ! true
+        sender ! (getQuery(key).delete > 0)
     }
     case PlayerDAO.Get(key) => db.withSession {
       implicit session =>

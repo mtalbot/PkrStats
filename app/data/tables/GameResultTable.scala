@@ -18,12 +18,14 @@ object GameResultTable extends SuppliesTableQuery[GameResultTable, GameResult, L
 class GameResultTable(tag: Tag) extends Table[GameResult](tag, "GAME_RESULTS") with IdTable[Long] { 
 	val id = column[Long]("ID", O.PrimaryKey, O.AutoInc)
 	val game = column[Game]("GAME_ID", O.NotNull)
-	val position = column[Int]("POSITION", O.NotNull)
 	val player = column[Player]("PLAYER_ID", O.NotNull)
+	val position = column[Int]("POSITION", O.NotNull)
+	val stake = column[Option[Double]]("STAKE", O.Nullable)
+	val winnings = column[Option[Double]]("WINNINGS", O.Nullable)
+	val currency = column[Option[String]]("CURRENCY", O.Nullable)
 	
-	val idx = index("IDX_GAME_RESULT", (game, position), false)
 	val fkPlayer = foreignKey("FK_GAME_RESULTS_PLAYER", player.asColumnOf[Long], PlayerTable.tableQuery)(_.id)
 	val fkGame = foreignKey("FK_GAME_RESULTS_GAMES", game.asColumnOf[Long], GameTable.tableQuery)(_.id)
 	
-	def * = (id, game, position, player) <> (GameResult.tupled, GameResult.unapply)
+	def * = (id, game, player, position, stake, winnings, currency) <> (GameResult.tupled, GameResult.unapply)
 }

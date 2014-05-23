@@ -12,9 +12,9 @@ class SkillDAO extends Actor with RequiresDatabaseConnection {
   val getQuery = SkillEntryTable.tableQuery.findBy(_.id)
 
   def receive = {
-    case SkillDAO.Insert(obj) =>db.withSession {
+    case SkillDAO.Insert(obj) => db.withSession {
       implicit session =>
-        sender ! ((SkillEntryTable.tableQuery  returning SkillEntryTable.tableQuery.map(_.id)) += obj)
+        sender ! ((SkillEntryTable.tableQuery returning SkillEntryTable.tableQuery.map(_.id)) += obj)
     }
     case SkillDAO.Update(obj) => db.withSession {
       implicit session =>
@@ -22,9 +22,7 @@ class SkillDAO extends Actor with RequiresDatabaseConnection {
     }
     case SkillDAO.Delete(key) => db.withSession {
       implicit session =>
-        getQuery(key).delete
-
-        sender ! true
+        sender ! (getQuery(key).delete > 0)
     }
     case SkillDAO.Get(key) => db.withSession {
       implicit session =>

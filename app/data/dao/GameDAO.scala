@@ -3,68 +3,62 @@ package data.dao
 import akka.actor.Actor
 import models._
 import data.tables._
-import akka.actor.Actor
-import play.api.db._
-import play.api.Play.current
-import scala.slick.jdbc.JdbcBackend.Database
 import scala.slick.driver.JdbcDriver.simple._
-import play.api.data._
 import data.RequiresDatabaseConnection
-import data.tables.GameTable.{mapper => gameMapper}
-import data.tables.PlayerTable.{mapper => playerMapper}
+import data.tables.GameTable.{ mapper => gameMapper }
+import data.tables.PlayerTable.{ mapper => playerMapper }
 
 object GameDAO extends BasicOperations[Long, (Game, List[GameResult])]
 
 class GameDAO extends Actor with RequiresDatabaseConnection {
+  val getQuery = GameTable.tableQuery.findBy(_.id)
+  val getResultsQuery = GameResultTable.tableQuery.findBy(_.game.asColumnOf[Long])
+
   def receive = {
-    case GameDAO.Insert(obj) => {
-      this.db.withSession { implicit session =>
-        val game = (GameTable.tableQuery returning GameTable.tableQuery.map(f => f)) += obj._1
+    case GameDAO.Insert(obj) => this.db.withSession { implicit session =>
+      val game = (GameTable.tableQuery returning GameTable.tableQuery.map(f => f)) += obj._1
 
-        val results = obj._2.map {
-          row =>
-            GameResult(row.id, game, row.position, row.player)
-        }
-
-        GameResultTable.tableQuery ++= results
-
-        sender ! game.id
+      val results = obj._2.map {
+        row =>
+          GameResult(row.id, game, row.player, row.position, row.stake, row.winnings, row.currency)
       }
+
+      GameResultTable.tableQuery ++= results
+
+      sender ! game.id
     }
-    case GameDAO.Update(obj) =>
-    case GameDAO.Delete(key) => {
-      this.db.withSession { implicit session =>
-        val q = GameTable.tableQuery.findBy(_.id)
-        
-        
-        val q2 = GameResultTable.tableQuery.findBy(_.game.asColumnOf[Long])
+    case GameDAO.Update(obj) => this.db.withSession { implicit session =>
+      val objCount = getQuery(obj._1.id).update(obj._1)
 
-        q(key).delete
-        q2(key).delete
+      val newIds = obj._2.map(_.id)
 
-        sender ! true
+      val ids = getResultsQuery(obj._1.id).mapResult(_.id).list
+      val toDelete = GameResultTable.tableQuery.filterNot(_.id.inSet(newIds)).delete //Remove old entries
+
+      obj._2.filter { res => ids.contains(res.id) }.foreach { res =>
+        val q = GameResultTable.tableQuery.findBy(_.id)
+        q(res.id).update(res)
       }
-    }
-    case GameDAO.Get(key) => {
-      this.db.withSession { implicit session =>
-        val q = GameTable.tableQuery.findBy(_.id)
-        val q2 = GameResultTable.tableQuery.findBy(_.game.asColumnOf[Long])
-        val res = (q(key).firstOption, q2(key).list)
-        sender ! res
-      }
-    }
-    case GameDAO.Select(keys) => {
-      this.db.withSession { implicit session =>
-        val q = GameTable.tableQuery.filter { row => keys.contains(row.id) }
-        val q2 = GameResultTable.tableQuery.filter { row => keys.contains(row.game) }
 
-        val games = q.list
-        val results = q2.list.groupBy(_.game).toMap
+      val resCount = (GameResultTable.tableQuery ++= obj._2.filterNot { res => ids.contains(res.id) })
 
-        val res = games.map(row => (row.id, (row, results(row))))
-
-        sender ! res
-      }
+      sender ! resCount.getOrElse(0) + objCount
     }
+    case GameDAO.Delete(key) => this.db.withSession { implicit session =>
+      getResultsQuery(key).delete
+      sender ! (getQuery(key).delete > 0)
+    }
+    case GameDAO.Get(key) => this.db.withSession { implicit session =>
+      sender ! (getQuery(key).firstOption, getResultsQuery(key).list)
+    }
+    case GameDAO.Select(keys) => this.db.withSession { implicit session =>
+      sender ! GameResultTable.
+        tableQuery.
+        filter(_.game.asColumnOf[Long].inSet(keys)).
+        groupBy(_.game).
+        list.
+        map(grp => (grp._1.id, (grp._1, grp._2.asInstanceOf[GameResult])))
+    }
+
   }
 }
