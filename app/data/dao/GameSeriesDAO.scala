@@ -40,7 +40,7 @@ class GameSeriesDAO extends Actor with RequiresDatabaseConnection {
         map { series => (series.id, series) }.
         toMap
     }
-    case GameSeriesDAO.GetStatistics(key, normalize) => db.withSession { implicit session =>
+    case GameSeriesDAO.GetStatistics(key, normalize) => {
 
       val gamesQuery = GameTable.
         tableQuery.
@@ -58,28 +58,47 @@ class GameSeriesDAO extends Actor with RequiresDatabaseConnection {
         tableQuery.
         filter(_.game.asColumnOf[Long].in(gamesQuery))
 
-      val statsQuery = gameresults.
-        groupBy(_.game).
-        map { result => (result._1, result._2.length) }.
-        innerJoin(gameresults).
-        on { (left, right) => left._1 === right.game }.
-        map { row => (row._2.player, positionGroup(row._2, row._1._2)) }.
-        groupBy { row => (row._1, row._2) }.
-        map { grp => (grp._1._1, (grp._1._2, grp._2.length)) }
+      val statsQuery = Future {
+        db.withSession { implicit session =>
+          gameresults.
+            groupBy(_.game).
+            map { result => (result._1, result._2.length) }.
+            innerJoin(gameresults).
+            on { (left, right) => left._1 === right.game }.
+            map { row => (row._2.player, positionGroup(row._2, row._1._2)) }.
+            groupBy { row => (row._1, row._2) }.
+            map { grp => (grp._1._1, (grp._1._2, grp._2.length)) }.
+            list.
+            groupBy(_._1).
+            map { grp => (grp._1, grp._2.map(_._2).toMap) }
+        }
+      }
 
-      val playerQuery = gameresults.
-        innerJoin(GameTable.tableQuery).
-        on { (result, game) => result.game.asColumnOf[Long] === game.id }.
-        map { pair => (pair._1.player, (pair._1.winnings.getOrElse(0), pair._1.stake.ifNull(pair._2.stake), pair._2)) }.
-        groupBy(_._1).
-        map { grp => (grp._1, grp._2.map(_._2._1).sum.getOrElse(0), grp._2.map(_._2._2).sum.getOrElse(0), grp._2.map(_._2._3).countDistinct, grp._2.length) }
-        
-      for ()
-      val results = Future.sequence(List(
-    		  Future { gameresults.length.run },
-    		  Future { statsQuery.list.groupBy(_._1).map{ grp => ( grp._1, grp._2.toMap )} }
-      ))
-      
+      val playerQuery = Future {
+        db.withSession { implicit session =>
+          gameresults.
+            innerJoin(GameTable.tableQuery).
+            on { (result, game) => result.game.asColumnOf[Long] === game.id }.
+            map { pair => (pair._1.player, (pair._1.winnings.getOrElse(0), pair._1.stake.ifNull(pair._2.stake), pair._2)) }.
+            groupBy(_._1).
+            map { grp => (grp._1, (grp._2.map(_._2._1).sum.getOrElse(0), grp._2.map(_._2._2).sum.getOrElse(0), grp._2.map(_._2._3).countDistinct, grp._2.length)) }.
+            toMap
+        }
+      }
+
+      val countQuery = Future { db.withSession { implicit session => gameresults.length.run } }
+
+      val result = for (
+        gameCount <- countQuery;
+        stats <- statsQuery;
+        aggregates <- playerQuery
+      ) yield (
+        for (
+          stat <- stats;
+          aggregate <- aggregates if (stat._1 == aggregate._1)
+        ) yield (stat._1, (GameSeriesStatistic(stat._2, aggregate._2._1, aggregate._2._2, aggregate._2._3, aggregate._2._4, aggregate._2._3 / gameCount.toDouble))))
+
+      result.map(sender ! _)
     }
   }
 }
