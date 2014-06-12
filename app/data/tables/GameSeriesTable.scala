@@ -1,6 +1,6 @@
 package data.tables
 
-import scala.slick.driver.JdbcDriver.simple._
+import data.helpers.DatabaseDriver.slickDriver._
 import models.GameSeries
 import data.helpers.MappedColumnModelID
 

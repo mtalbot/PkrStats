@@ -4,7 +4,7 @@ import akka.actor.Actor
 import data.RequiresDatabaseConnection
 import data.tables.GameSeriesTable
 import data.tables.GameTable
-import scala.slick.driver.JdbcDriver.simple._
+import data.helpers.DatabaseDriver.slickDriver._
 import models._
 import data.tables.GameTable.{ mapper => gameMapper }
 import data.tables.GameSeriesTable.{ mapper => gameSeriesMapper }
@@ -88,7 +88,7 @@ class GameSeriesDAO extends Actor with RequiresDatabaseConnection {
 
       val countQuery = Future { db.withSession { implicit session => gameresults.length.run } }
 
-      val result = for (
+      for (
         gameCount <- countQuery;
         stats <- statsQuery;
         aggregates <- playerQuery
@@ -96,9 +96,8 @@ class GameSeriesDAO extends Actor with RequiresDatabaseConnection {
         for (
           stat <- stats;
           aggregate <- aggregates if (stat._1 == aggregate._1)
-        ) yield (stat._1, (GameSeriesStatistic(stat._2, aggregate._2._1, aggregate._2._2, aggregate._2._3, aggregate._2._4, aggregate._2._3 / gameCount.toDouble))))
-
-      result.map(sender ! _)
+        ) yield (stat._1, (GameSeriesStatistic(stat._2, aggregate._2._1, aggregate._2._2, aggregate._2._3, aggregate._2._4, aggregate._2._3 / gameCount.toDouble)))).
+        map(sender ! _)
     }
   }
 }

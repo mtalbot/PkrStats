@@ -4,7 +4,7 @@ import data.RequiresDatabaseConnection
 import akka.actor.Actor
 import models.SkillEntry
 import data.tables.SkillEntryTable
-import scala.slick.driver.JdbcDriver.simple._
+import data.helpers.DatabaseDriver.slickDriver._
 
 object SkillDAO extends BasicOperations[Long, SkillEntry]
 

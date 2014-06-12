@@ -3,7 +3,7 @@ package data.dao
 import akka.actor.Actor
 import models._
 import data.tables._
-import scala.slick.driver.JdbcDriver.simple._
+import data.helpers.DatabaseDriver.slickDriver._
 import data.RequiresDatabaseConnection
 import data.tables.GameTable.{ mapper => gameMapper }
 import data.tables.PlayerTable.{ mapper => playerMapper }

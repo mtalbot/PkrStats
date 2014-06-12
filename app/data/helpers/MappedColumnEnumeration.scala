@@ -1,6 +1,6 @@
 package data.helpers
 
-import scala.slick.driver.JdbcDriver.simple._
+import data.helpers.DatabaseDriver.slickDriver._
 
 trait MappedColumnEnumeration extends Enumeration {
   implicit def enumMapper = MappedColumnType.base[Value, Int](

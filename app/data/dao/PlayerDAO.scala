@@ -4,7 +4,7 @@ import models.Player
 import akka.actor.Actor
 import data.RequiresDatabaseConnection
 import data.tables.PlayerTable
-import scala.slick.driver.JdbcDriver.simple._
+import data.helpers.DatabaseDriver.slickDriver._
 
 object PlayerDAO extends BasicOperations[Long, Player]
 

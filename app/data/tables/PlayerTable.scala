@@ -1,11 +1,12 @@
 package data.tables
 
-import scala.slick.driver.JdbcDriver.simple._
+import data.helpers.DatabaseDriver.slickDriver._
 import models.Player
 import scala.Array
 import scala.List
 import models.AuthenticationType
 import data.helpers.MappedColumnModelID
+import data.helpers.MappedColumnStringList.stringMapper
 
 object PlayerTable extends SuppliesTableQuery[PlayerTable, Player, Long] with MappedColumnModelID[Player] {
   val tableQuery = TableQuery[PlayerTable]
@@ -14,18 +15,6 @@ object PlayerTable extends SuppliesTableQuery[PlayerTable, Player, Long] with Ma
 }
 
 class PlayerTable(tag: Tag) extends Table[Player](tag, "PLAYERS") with IdTable[Long] {
-
-  implicit val stringListMapper = MappedColumnType.base[List[String], String](
-    { list =>
-      list.map(str => str.replace(":", "::")).fold("")((left, right) => (left, right) match {
-        case (left, right) if left == null || left.isEmpty() => right
-        case (left, right) if right == null || right.isEmpty() => left
-        case (left, right) if (right == null || right.isEmpty()) && (left == null || left.isEmpty()) => ""
-        case _ => left + ":" + right
-      })
-    },
-    { str => (str.split("(?<!:):(?!:)")).map(str => str.replace("::", ":")).toList })
-
   val id = column[Long]("ID", O.AutoInc, O.PrimaryKey)
   val name = column[String]("NAME", O.NotNull)
   val nicknames = column[List[String]]("NICKNAMES")

@@ -1,6 +1,6 @@
 package data.tables
 
-import scala.slick.driver.JdbcDriver.simple._
+import data.helpers.DatabaseDriver.slickDriver._
 import models.Model
 
 trait SuppliesTableQuery[tableType <: Table[modelType], modelType <: Model[idType], idType] {

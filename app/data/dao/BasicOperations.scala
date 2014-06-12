@@ -1,7 +1,7 @@
 package data.dao
 
 trait Operation[returnType] {
-  def getResult(value: AnyRef): returnType = value.asInstanceOf[returnType]
+  def getResult(value: Any): returnType = value.asInstanceOf[returnType]
 }
 
 class BasicOperations[keyType, classType] {
