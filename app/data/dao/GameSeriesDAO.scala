@@ -91,7 +91,7 @@ class GameSeriesDAO extends Actor with RequiresDatabaseConnection {
           gameresults.
             innerJoin(GameTable.tableQuery).
             on { (result, game) => result.game.asColumnOf[Long] === game.id }.
-            map { pair => (pair._1.player, (pair._1.winnings.getOrElse(0), pair._1.stake.ifNull(pair._2.stake), pair._2)) }.
+            map { pair => (pair._1.player, (pair._1.score.getOrElse(0), pair._1.stake.ifNull(pair._2.stake), pair._2)) }.
             groupBy(_._1).
             map { grp => (grp._1, (grp._2.map(_._2._1).sum.getOrElse(0), grp._2.map(_._2._2).sum.getOrElse(0), grp._2.map(_._2._3).countDistinct, grp._2.length)) }.
             toMap

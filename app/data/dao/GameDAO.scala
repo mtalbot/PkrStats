@@ -22,7 +22,7 @@ class GameDAO extends Actor with RequiresDatabaseConnection {
 
       val results = obj._2.map {
         row =>
-          GameResult(row.id, game, row.player, row.position, row.stake, row.winnings, row.currency)
+          GameResult(row.id, game, row.player, row.position, row.stake, row.score)
       }
 
       GameResultTable.tableQuery ++= results

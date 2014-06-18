@@ -6,6 +6,5 @@ case class GameResult (
     val player: Player,
     val position: Int, 
     val stake: Option[Double],
-    val winnings: Option[Double],
-    val currency: Option[String]
+    val score: Option[Double]
 ) extends Model[Long]

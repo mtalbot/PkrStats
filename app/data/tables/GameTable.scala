@@ -6,7 +6,9 @@ import org.joda.time.DateTime
 import data.tables.GameSeriesTable._
 import models.GameSeries
 import data.helpers.MappedColumnModelID
-import data.helpers.DatabaseDriver.jodaDriver._ 
+import data.helpers.DatabaseDriver.jodaDriver._
+import data.helpers.MappedColumnGameType.gameTypeMapper
+import models.gameTypes.GameType
 
 object GameTable extends SuppliesTableQuery[GameTable, Game, Long] with MappedColumnModelID[Game] {
   val tableQuery = TableQuery[GameTable]
@@ -19,10 +21,9 @@ class GameTable(tag: Tag) extends Table[Game](tag, "GAMES") with IdTable[Long] {
   val series = column[GameSeries]("GAME_SERIES_ID", O.NotNull)
   val hosted = column[String]("HOSTED", O.NotNull)
   val date = column[DateTime]("DATE", O.NotNull)
-  val stake = column[Double]("STAKE", O.NotNull)
-  val currency = column[String]("CURRENCY", O.NotNull)
+  val gameType = column[GameType]("TYPE", O.NotNull)
 
   //val fk_series = foreignKey("FK_GAME_GAME_SERIES", series.asColumnOf[Long], GameSeriesTable.tableQuery)(_.id)
 
-  def * = (id, series, hosted, date, stake, currency) <> (Game.tupled, Game.unapply)
+  def * = (id, series, hosted, date, gameType) <> (Game.tupled, Game.unapply)
 }

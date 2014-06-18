@@ -21,11 +21,7 @@ class GameResultTable(tag: Tag) extends Table[GameResult](tag, "GAME_RESULTS") w
   val player = column[Player]("PLAYER_ID", O.NotNull)
   val position = column[Int]("POSITION", O.NotNull)
   val stake = column[Option[Double]]("STAKE", O.Nullable)
-  val winnings = column[Option[Double]]("WINNINGS", O.Nullable)
-  val currency = column[Option[String]]("CURRENCY", O.Nullable)
+  val score = column[Option[Double]]("SCORE", O.Nullable)
 
-  //val fkPlayer = foreignKey("FK_GAME_RESULTS_PLAYER", player.asColumnOf[Long], PlayerTable.tableQuery)(_.id)
-  //val fkGame = foreignKey("FK_GAME_RESULTS_GAMES", game.asColumnOf[Long], GameTable.tableQuery)(_.id)
-
-  def * = (id, game, player, position, stake, winnings, currency) <> (GameResult.tupled, GameResult.unapply)
+  def * = (id, game, player, position, stake, score) <> (GameResult.tupled, GameResult.unapply)
 }
