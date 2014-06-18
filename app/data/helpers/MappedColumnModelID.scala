@@ -1,6 +1,6 @@
 package data.helpers
 
-import data.helpers.DatabaseDriver.slickDriver._
+import data.helpers.DatabaseDriver.slickProfile._
 import models.Model
 import scala.reflect.ClassTag
 import data.RequiresDatabaseConnection

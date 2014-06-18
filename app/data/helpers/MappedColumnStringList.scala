@@ -1,6 +1,6 @@
 package data.helpers
 
-import data.helpers.DatabaseDriver.slickDriver._
+import data.helpers.DatabaseDriver.slickProfile._
 
 object MappedColumnStringList {
   implicit val stringMapper = MappedColumnType.base[List[String], String](

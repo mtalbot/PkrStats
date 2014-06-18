@@ -1,13 +1,13 @@
 /**
- * 
+ * Perfoms G+ authentication
  */
 
 function signinCallback(authResult) {
   if (authResult['status']['signed_in']) {
-    // Update the app to reflect a signed in user
-    // Hide the sign-in button now that the user is authorized, for example:
-    document.getElementById('signinButton').setAttribute('style', 'display: none');
-    debugger;
+    $("#authID").val(authResult.id_token);
+	$("#authCode").val(authResult.code);
+    $("#authType").val("g+");
+    $("#authForm").submit();
   } else {
     // Update the app to reflect a signed out user
     // Possible error values:

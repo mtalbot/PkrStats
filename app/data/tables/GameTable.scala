@@ -1,6 +1,6 @@
 package data.tables
 
-import data.helpers.DatabaseDriver.slickDriver._
+import data.helpers.DatabaseDriver.slickProfile._
 import models.Game
 import org.joda.time.DateTime
 import data.tables.GameSeriesTable._

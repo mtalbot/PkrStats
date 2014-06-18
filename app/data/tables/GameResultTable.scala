@@ -1,6 +1,6 @@
 package data.tables
 
-import data.helpers.DatabaseDriver.slickDriver._
+import data.helpers.DatabaseDriver.slickProfile._
 import models.GameResult
 import data.tables.GameTable.{ mapper => gameMapper }
 import data.tables.PlayerTable.{ mapper => playerMapper }

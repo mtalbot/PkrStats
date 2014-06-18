@@ -1,12 +1,14 @@
 package data.tables
 
-import data.helpers.DatabaseDriver.slickDriver._
+import data.helpers.DatabaseDriver.slickProfile._
+import data.helpers.DatabaseDriver.jodaDriver._
 import models.Player
 import scala.Array
 import scala.List
 import models.AuthenticationType
 import data.helpers.MappedColumnModelID
 import data.helpers.MappedColumnStringList.stringMapper
+import org.joda.time.DateTime
 
 object PlayerTable extends SuppliesTableQuery[PlayerTable, Player, Long] with MappedColumnModelID[Player] {
   val tableQuery = TableQuery[PlayerTable]
@@ -19,8 +21,9 @@ class PlayerTable(tag: Tag) extends Table[Player](tag, "PLAYERS") with IdTable[L
   val name = column[String]("NAME", O.NotNull)
   val nicknames = column[List[String]]("NICKNAMES")
   val authId = column[Option[String]]("AUTH_ID")
-  val authToken = column[Option[Array[Byte]]]("AUTH_TOKEN")
+  val authToken = column[Option[String]]("AUTH_TOKEN")
+  val authTokenExpiry = column[Option[DateTime]]("AUTH_TOKEN_EXPIRY")
   val authType = column[Option[AuthenticationType.AuthenticationType]]("AUTH_TYPE")
   
-  def * = (id, name, nicknames, authId, authToken, authType) <> (Player.tupled, Player.unapply)
+  def * = (id, name, nicknames, authId, authToken, authTokenExpiry, authType) <> (Player.tupled, Player.unapply)
 }

@@ -1,7 +1,17 @@
 package data.dao
 
 trait Operation[returnType] {
-  def getResult(value: Any): returnType = value.asInstanceOf[returnType]
+  def getResult(value: Any): returnType =
+    try {
+      val result = value.asInstanceOf[returnType]
+      
+      result
+    } catch {
+      case ex: Throwable => {
+        println(ex.toString())
+        throw ex;
+      }
+    }
 }
 
 class BasicOperations[keyType, classType] {

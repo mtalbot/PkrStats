@@ -1,7 +1,29 @@
-@(message: String)(implicit request: Request[_])
+@(authForm: Form[forms.AuthenticateForm.AuthToken])(implicit request: Request[_])
 
-@main("Welcome to Play") {
+@main("PkrStats") {
+<script src="@routes.Assets.at("javascript/login.js")" type="text/javascript"></script>	
+<span id="signinButton" style="float: right;">
+	<span
+		class="g-signin"
+		data-callback="signinCallback"
+		data-clientid="247086175364-m66iououftl5irrphi3ktcrgtcdt3rn8.apps.googleusercontent.com"
+		data-cookiepolicy="single_host_origin"
+		data-requestvisibleactions="http://schemas.google.com/AddActivity"
+		data-scope="https://www.googleapis.com/auth/plus.login"
+		data-accesstype="offline"
+		data-width="wide">
+	</span>
+</span>
+@helper.form(action = routes.Application.authenticate, 'id -> "authForm"){
+	@helper.CSRF.formField
+	@helper.inputHidden(authForm("id"), 'id -> "authID")
+	@helper.inputHidden(authForm("code"), 'id -> "authCode")
+	@helper.inputHidden(authForm("authtype"), 'id -> "authType")
+}
+} {
 
-    @play20.welcome(message)
+    <p>
+    	Hello World
+    </p>
 
 }

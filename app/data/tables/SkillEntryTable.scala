@@ -1,6 +1,6 @@
 package data.tables
 
-import data.helpers.DatabaseDriver.slickDriver._
+import data.helpers.DatabaseDriver.slickProfile._
 import models._
 import data.tables.GameResultTable.mapper
 import data.helpers.MappedColumnModelID

@@ -21,6 +21,7 @@ import scala.concurrent.Future
 import scala.concurrent.CanAwait
 import scala.concurrent.Await
 import play.api.mvc.Security.AuthenticatedRequest
+import org.joda.time.DateTime
 
 object RequiresAuthentication extends AuthenticatedBuilder(
   implicit request => {
@@ -47,8 +48,7 @@ object RequiresUnautheticated extends ActionBuilder[Request] {
       block(request)
     } else {
       Future {
-        Results.Forbidden
-        //Results.Redirect(controllers.routes.Account.view(user.get.userName))
+        Results.Redirect(controllers.routes.Player.index)
       }
     }
 

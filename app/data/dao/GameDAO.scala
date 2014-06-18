@@ -3,12 +3,14 @@ package data.dao
 import akka.actor.Actor
 import models._
 import data.tables._
-import data.helpers.DatabaseDriver.slickDriver._
+import data.helpers.DatabaseDriver.slickProfile._
 import data.RequiresDatabaseConnection
 import data.tables.GameTable.{ mapper => gameMapper }
 import data.tables.PlayerTable.{ mapper => playerMapper }
 
-object GameDAO extends BasicOperations[Long, (Game, List[GameResult])]
+object GameDAO extends BasicOperations[Long, (Game, List[GameResult])] {
+  case class GetAllGamesForPlayer(player: Player) extends Operation[List[Game]]
+}
 
 class GameDAO extends Actor with RequiresDatabaseConnection {
   val getQuery = GameTable.tableQuery.findBy(_.id)

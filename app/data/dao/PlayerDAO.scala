@@ -4,9 +4,12 @@ import models.Player
 import akka.actor.Actor
 import data.RequiresDatabaseConnection
 import data.tables.PlayerTable
-import data.helpers.DatabaseDriver.slickDriver._
+import data.helpers.DatabaseDriver.slickProfile._
+import models.AuthenticationType
 
-object PlayerDAO extends BasicOperations[Long, Player]
+object PlayerDAO extends BasicOperations[Long, Player] {
+  case class FindPlayerByAuthID(authID: String, authType: AuthenticationType.AuthenticationType) extends Operation[Option[Player]]
+}
 
 class PlayerDAO extends Actor with RequiresDatabaseConnection {
   val getQuery = PlayerTable.tableQuery.findBy(_.id)
@@ -36,6 +39,13 @@ class PlayerDAO extends Actor with RequiresDatabaseConnection {
           map { player => (player.id, player) }.
           list.
           toMap
+    }
+    case PlayerDAO.FindPlayerByAuthID(authID, authType) => db.withSession {
+      implicit session =>
+        sender ! PlayerTable.
+          tableQuery.
+          filter { player => player.authId === authID && player.authType === authType }.
+          firstOption
     }
   }
 }

@@ -4,16 +4,19 @@ import akka.actor.Actor
 import data.RequiresDatabaseConnection
 import data.tables.GameSeriesTable
 import data.tables.GameTable
-import data.helpers.DatabaseDriver.slickDriver._
+import data.helpers.DatabaseDriver.slickProfile._
 import models._
 import data.tables.GameTable.{ mapper => gameMapper }
 import data.tables.GameSeriesTable.{ mapper => gameSeriesMapper }
+import data.tables.PlayerTable.{ mapper => playerMapper }
 import data.tables.GameResultTable
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.slick.ast.JoinType
 
 object GameSeriesDAO extends BasicOperations[Long, GameSeries] {
   case class GetStatistics(key: Long, normalize: Option[Int]) extends Operation[Map[Player, GameSeriesStatistic]]
+  case class GetForPlayer(player: Player) extends Operation[List[GameSeries]]
 }
 
 class GameSeriesDAO extends Actor with RequiresDatabaseConnection {
@@ -39,6 +42,15 @@ class GameSeriesDAO extends Actor with RequiresDatabaseConnection {
         filter(_.id.inSet(keys)).
         map { series => (series.id, series) }.
         toMap
+    }
+    case GameSeriesDAO.GetForPlayer(player) => db.withSession { implicit session =>
+      sender ! GameSeriesTable.tableQuery.filter(_.id.in{
+    	  GameTable.tableQuery.filter(_.id.in{
+    	    GameResultTable.
+    	    tableQuery.
+    	    filter(_.player === player).map(_.game.asColumnOf[Long])
+    	  }).map(_.series.asColumnOf[Long])
+      }).list
     }
     case GameSeriesDAO.GetStatistics(key, normalize) => {
 
