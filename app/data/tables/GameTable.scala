@@ -9,6 +9,7 @@ import data.helpers.MappedColumnModelID
 import data.helpers.DatabaseDriver.jodaDriver._
 import data.helpers.MappedColumnGameType.gameTypeMapper
 import models.gameTypes.GameType
+import data.baseTables.IdTable
 
 object GameTable extends SuppliesTableQuery[GameTable, Game, Long] with MappedColumnModelID[Game] {
   val tableQuery = TableQuery[GameTable]

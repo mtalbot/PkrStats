@@ -1,10 +1,10 @@
 package data.helpers
 
 import data.helpers.DatabaseDriver.slickProfile._
-import models.Model
+import models.baseModels.Model
 import scala.reflect.ClassTag
 import data.RequiresDatabaseConnection
-import data.tables.IdTable
+import data.baseTables.IdTable
 import scala.slick.lifted.TableQuery
 
 trait MappedColumnModelID[modelType <: Model[_]] {

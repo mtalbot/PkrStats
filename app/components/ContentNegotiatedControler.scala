@@ -17,9 +17,23 @@ import play.api.mvc.ActionBuilder
 import play.api.mvc.Action
 import scala.parallel.Future
 import play.api.mvc.Controller
+import play.api.templates.Html
 
 class ContentNegotiatedControler extends Controller {
 
+  def renderPartial[model, viewContent <: Html](resp: Status, title: String, header: Html, view: model => viewContent, mod: model)(implicit request: Request[_], writes: Writes[model], writer: Writeable[viewContent]): SimpleResult = {
+    render {
+      case Accepts.Html() => { request.headers.get("viewtype") match {
+        case Some("partial") => resp(view(mod))
+        case Some("full") => resp(views.html.main(title)(header)(view(mod)))        
+        case None => resp(views.html.main(title)(header)(view(mod))) 
+        case Some(invalidHeader) => BadRequest("viewtype header should be full or partial")
+      }
+      }
+      case Accepts.Json() => resp(Json.toJson(mod))
+    }
+  }
+  
   def render[model, viewContent](resp: Status, view: model => viewContent, mod: model)(implicit request: Request[_], writes: Writes[model], writer: Writeable[viewContent]): SimpleResult = {
     render {
       case Accepts.Html() => resp(view(mod))

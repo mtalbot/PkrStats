@@ -1,4 +1,4 @@
-package data.tables
+package data.baseTables
 
 import scala.slick.lifted.Column
 

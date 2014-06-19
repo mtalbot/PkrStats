@@ -8,6 +8,7 @@ import models.Game
 import models.Player
 import data.RequiresDatabaseConnection
 import data.helpers.MappedColumnModelID
+import data.baseTables.IdTable
 
 object GameResultTable extends SuppliesTableQuery[GameResultTable, GameResult, Long] with MappedColumnModelID[GameResult] {
   val tableQuery = TableQuery[GameResultTable]

@@ -9,6 +9,7 @@ import models.AuthenticationType
 import data.helpers.MappedColumnModelID
 import data.helpers.MappedColumnStringList.stringMapper
 import org.joda.time.DateTime
+import data.baseTables.IdTable
 
 object PlayerTable extends SuppliesTableQuery[PlayerTable, Player, Long] with MappedColumnModelID[Player] {
   val tableQuery = TableQuery[PlayerTable]

@@ -1,0 +1,16 @@
+@(form: Form[forms.GameSeriesForm.GameSeriesViewModel])(implicit request: Request[_])
+
+@main("New Game Series"){
+	
+}{
+	<div>
+		@helper.form(routes.GameSeries.create) {
+				@helper.CSRF.formField
+				@helper.inputText(form("name"))
+				@helper.inputHidden(form("type"))
+				<p>
+					<input type="submit" value="Submit"/>
+				</p>
+		}
+	</div>
+}

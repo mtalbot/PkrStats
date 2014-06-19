@@ -8,5 +8,11 @@ POST	/Authenticate				controllers.Application.authenticate
 
 GET		/Player						controllers.Player.index
 
+GET		/GameSeries					controllers.GameSeries.newSeries
+GET		/GameSeries/:id				controllers.GameSeries.view(id: Long)
+POST	/GameSeries/:id/upload		controllers.GameSeries.upload(id: Long)
+POST	/GameSeries/:id				controllers.GameSeries.save(id: Option[Long])
+POST	/GameSeries/				controllers.GameSeries.create
+
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.at(path="/public", file)

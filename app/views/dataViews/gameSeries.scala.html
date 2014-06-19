@@ -1,0 +1,97 @@
+@(data: (GameSeries, Map[Player, GameSeriesStatistic]))(implicit request: Request[_])
+
+	<div class="gameSeriesStat">
+		<h2>@data._1.name</h2>
+		<div>
+			@if(data._2.size > 0) {
+			<table>
+				<thead>
+					<tr>
+						<th>Position</th>
+						@data._2.map{ stat => 
+							<td>@stat._1.name</td>
+						}
+					</tr>
+				</thead>
+				<tbody>
+
+						@Range(1, data._2.map(_._2.positionFrequency.map(_._1).max).max).map { index =>
+						<tr>
+							<td>
+								@index
+							</td>
+							@data._2.map{ stat =>
+								@defining(stat._2.positionFrequency.get(index)) { value =>
+									<td>
+										@if(value != None) {
+											@value	
+										}
+									</td>
+								}
+							}
+						</tr>	
+					}
+					<tr>
+						<th>
+							Games
+						</th>
+						@data._2.map{ stat =>
+							<td>
+								@stat._2.gameCount	
+							</td>
+						}
+					</tr>
+					<tr>
+						<th>
+							Buys
+						</th>
+						@data._2.map{ stat =>
+							<td>
+								@stat._2.buyCount	
+							</td>
+						}
+					</tr>
+					<tr>
+						<th>
+							Stake
+						</th>
+						@data._2.map{ stat =>
+							<td>
+								@stat._2.stake	
+							</td>
+						}
+					</tr>
+					<tr>
+						<th>
+							Winnings
+						</th>
+						@data._2.map{ stat =>
+							<td>
+								@stat._2.winnings	
+							</td>
+						}
+					</tr>
+					<tr>
+						<th>
+							Profit
+						</th>
+						@data._2.map{ stat =>
+							<td class='@{if ((stat._2.winnings - stat._2.stake) > 0) {"black"} else {"red"} }'>
+								@{stat._2.winnings - stat._2.stake}	
+							</td>
+						}
+					</tr>
+				</tbody>
+			</table>
+			}
+			<a href="">Add new game</a>
+			<div>
+			@helper.form(action = helper.CSRF(routes.GameSeries.upload(data._1.id)), 'enctype -> "multipart/form-data"){
+				<input type="file" name="gamedata"/>
+				<p>
+					<input type="submit" value="Upload" />
+				</p>
+			}
+			</div>
+		</div>
+	</div>

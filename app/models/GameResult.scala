@@ -1,5 +1,7 @@
 package models
 
+import models.baseModels.Model
+
 case class GameResult (
     val id: Long, 
     val game: Game,

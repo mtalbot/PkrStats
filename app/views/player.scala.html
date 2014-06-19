@@ -4,7 +4,8 @@
 } {
 
 	<div id="gameSeriesStats">
-		
+		@stats.map { stat => dataViews.gameSeries(stat._1, stat._2)  }
+		<a href="@routes.GameSeries.newSeries">Create new</a>
 	</div>
 
 }

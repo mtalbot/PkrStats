@@ -54,9 +54,11 @@ object Application extends ContentNegotiatedControler with DbTimeout {
 
             (loginSrv ? login).
               map { player =>
-                Security.userToRequest(Results.Redirect(controllers.routes.Player.index), login.getResult(player))
+                login.
+                  getResult(player).
+                  map(Security.userToRequest(Results.Redirect(controllers.routes.Player.index), _)).
+                  getOrElse(Redirect(routes.Application.index))
               }
-
           })
     }
   }

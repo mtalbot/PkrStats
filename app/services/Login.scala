@@ -24,7 +24,7 @@ import org.joda.time.DateTime
 import scala.concurrent.Await
 
 object Login {
-  case class DoLogin(auth: AuthToken) extends Operation[Player]
+  case class DoLogin(auth: AuthToken) extends Operation[Option[Player]]
 
   class UserAuthError(reason: String) extends Exception(reason)
   class MismatchedUserID extends Exception

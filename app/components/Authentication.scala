@@ -22,6 +22,7 @@ import scala.concurrent.CanAwait
 import scala.concurrent.Await
 import play.api.mvc.Security.AuthenticatedRequest
 import org.joda.time.DateTime
+import models.baseModels.ChangeLoggedModel
 
 object RequiresAuthentication extends AuthenticatedBuilder(
   implicit request => {
@@ -84,5 +85,11 @@ object Security extends DbTimeout {
 
   def userToRequest(implicit result: SimpleResult, player: Player): SimpleResult = {
     result.withSession("id" -> player.id.toString)
+  }
+  
+  def getChangedLoggedFromRequest(existing: Option[ChangeLoggedModel])(implicit request: AuthenticatedRequest[_, Player]): (Player, DateTime, Option[Player], Option[DateTime]) = {
+    existing.map{exists =>
+      (exists.createdBy, exists.createdOn, Some(request.user), Some(DateTime.now))
+    }.getOrElse((request.user, DateTime.now, None, None))
   }
 }

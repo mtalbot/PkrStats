@@ -29,4 +29,6 @@ libraryDependencies ++= Seq(
 
 play.Project.playScalaSettings
 
+routesImport ++= Seq("components.LongBinder._")
+
 pipelineStages := Seq(rjs)

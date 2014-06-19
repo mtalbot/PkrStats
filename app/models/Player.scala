@@ -2,6 +2,7 @@ package models
 
 import AuthenticationType._
 import org.joda.time.DateTime
+import models.baseModels.Model
 
 case class Player(
     val id: Long, 

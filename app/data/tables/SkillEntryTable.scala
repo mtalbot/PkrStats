@@ -4,6 +4,7 @@ import data.helpers.DatabaseDriver.slickProfile._
 import models._
 import data.tables.GameResultTable.mapper
 import data.helpers.MappedColumnModelID
+import data.baseTables.IdTable
 
 object SkillEntryTable extends SuppliesTableQuery[SkillEntryTable, SkillEntry, Long] with MappedColumnModelID[SkillEntry] {
   override val tableQuery = TableQuery[SkillEntryTable]

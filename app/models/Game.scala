@@ -9,4 +9,4 @@ case class Game(
     val hosted: String, 
     val date: DateTime,
     val gametype: GameType
-) extends Model[Long]
+) extends baseModels.Model[Long]
