@@ -44,13 +44,16 @@ class GameSeriesDAO extends Actor with RequiresDatabaseConnection {
         toMap
     }
     case GameSeriesDAO.GetForPlayer(player) => db.withSession { implicit session =>
-      sender ! GameSeriesTable.tableQuery.filter(_.id.in {
-        GameTable.tableQuery.filter(_.id.in {
-          GameResultTable.
-            tableQuery.
-            filter(_.player === player).map(_.game.asColumnOf[Long])
-        }).map(_.series.asColumnOf[Long])
-      }).list
+      sender ! GameSeriesTable.tableQuery.filter(series =>
+        series.id.in {
+          GameTable.tableQuery.filter(_.id.in {
+            GameResultTable.
+              tableQuery.
+              filter(_.player === player).map(_.game.asColumnOf[Long])
+          }).map(_.series.asColumnOf[Long])
+        }
+          || series.createdBy.asColumnOf[Long] === player.id
+          || series.changedBy.asColumnOf[Long] === player.id).list
     }
     case GameSeriesDAO.GetStatistics(key, normalize) => {
       val theSender = sender
@@ -114,7 +117,7 @@ class GameSeriesDAO extends Actor with RequiresDatabaseConnection {
         case res => theSender ! res
       }
 
-      result.onFailure{
+      result.onFailure {
         case ex: Throwable => throw ex
       }
     }

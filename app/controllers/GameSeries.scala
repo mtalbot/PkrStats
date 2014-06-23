@@ -29,7 +29,6 @@ import play.filters.csrf.CSRFCheck
 import play.api.templates.Html
 import components.JsonSerializer
 import models.GameSeriesStatistic
-import models.Player
 import play.api.templates.HtmlFormat
 import forms.GameSeriesForm
 import models.gameTypes.Games
@@ -37,6 +36,9 @@ import models.gameTypes.Cards
 import scala.io.Source
 import services.FileUpload
 import data.dao.GameDAO
+import models.Game
+import models.GameResult
+import models.Player
 
 object GameSeries extends ContentNegotiatedControler with DbTimeout {
 
@@ -57,14 +59,14 @@ object GameSeries extends ContentNegotiatedControler with DbTimeout {
       val series = (gameSeriesDAO ? op).map(op.getResult(_))
       val stats = (gameSeriesDAO ? op2).map(op2.getResult(_))
 
-      implicit val serialiser = new JsonSerializer[(models.GameSeries, Map[Player, GameSeriesStatistic])]
+      implicit val serialiser = new JsonSerializer[(models.GameSeries, Map[Player, GameSeriesStatistic], Boolean)]
 
       for {
         seriesValue <- series
         statsValue <- stats
       } yield seriesValue.map { seriesVal =>
-        renderPartial[(models.GameSeries, Map[Player, GameSeriesStatistic]), HtmlFormat.Appendable](
-          Ok, "", Html.empty, views.html.dataViews.gameSeries.apply _, (seriesVal, statsValue))
+        renderPartial[(models.GameSeries, Map[Player, GameSeriesStatistic], Boolean), HtmlFormat.Appendable](
+          Ok, "", Html.empty, views.html.dataViews.gameSeries.apply _, (seriesVal, statsValue, true))
       }.getOrElse(NotFound(""))
     }
   }
@@ -109,7 +111,7 @@ object GameSeries extends ContentNegotiatedControler with DbTimeout {
 
         val op = GameSeriesDAO.Get(id)
 
-        val source = Future { Source.fromFile(file.ref.file) }
+        val source = Future { Source.fromFile(file.ref.file).getLines.toSeq }
 
         val series = (gameSeriesDAO ? op).
           map { result => op.getResult(result) }
@@ -122,29 +124,21 @@ object GameSeries extends ContentNegotiatedControler with DbTimeout {
         op2.flatMap {
           _.map { opResult =>
             (fileUploadSrv ? opResult).
-              map(opResult.getResult(_)).
-              map(_.map(GameDAO.Insert(_))).
-              flatMap { opperations =>
-                Future.sequence(opperations.map { op =>
-
-                  (gameDAO ? op).map { res =>
-                    op.getResult(res)
-                  }
-                })
-              }
-          }.fold(Future { Option.empty[List[Long]] })(_.map(Some(_)))
+              map(opResult.getResult(_))
+             }.get
         }
-      }).map { valu =>
-        valu.filter { opt =>
-          opt.isDefined && opt.nonEmpty
-        }.flatMap(_.get)
-      }
-
+      })
+      
       upload.onFailure {
         case ex: Throwable => throw ex
       }
-
-      upload.map { value => Redirect(routes.GameSeries.view(id))}
+      
+      implicit val serialiser = new JsonSerializer[Seq[(Seq[Player], Seq[(Game, Seq[GameResult])])]]
+      
+      upload.map { 
+        case Seq() => BadRequest("No files in upload")
+        case value => renderPartial(Ok, "Please confirm upload", Html.empty, views.html.editViews.gameSeriesUploadConfirm.apply _, value) 
+      }
     }
   }
 }

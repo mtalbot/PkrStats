@@ -24,6 +24,7 @@ import java.io.StringReader
 import play.api.libs.json._
 import components.RequiresAuthentication
 import data.dao.GameSeriesDAO
+import play.Logger
 
 object Player extends ContentNegotiatedControler with DbTimeout {
 
@@ -33,18 +34,24 @@ object Player extends ContentNegotiatedControler with DbTimeout {
   def index = RequiresAuthentication.async { implicit request =>
     val op = GameSeriesDAO.GetForPlayer(request.user)
 
-    (gameSeriesDAO ? op).
+    val result = (gameSeriesDAO ? op).
       flatMap { result =>
         Future.sequence(op.
           getResult(result).
           map { series =>
             (series, GameSeriesDAO.GetStatistics(series.id, None))
           }.map { opp =>
-            (gameSeriesDAO ? opp).map { res => (opp._1, opp._2.getResult(res)) }
+            (gameSeriesDAO ? opp._2).map { res => (opp._1, opp._2.getResult(res)) }
           })
       }.map { result =>
         Ok(views.html.player(request.user, result.toMap))
       }
+
+     result.onSuccess{
+         case res => Logger.info("Found Records")
+     }
+      
+    result
   }
 
 }

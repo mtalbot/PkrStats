@@ -1,7 +1,7 @@
-@(data: (GameSeries, Map[Player, GameSeriesStatistic]))(implicit request: Request[_])
+@(data: (GameSeries, Map[Player, GameSeriesStatistic], Boolean))(implicit request: Request[_])
 
 	<div class="gameSeriesStat">
-		<h2>@data._1.name</h2>
+		<h2><a href="@routes.GameSeries.view(data._1.id)">@data._1.name</a></h2>
 		<div>
 			@if(data._2.size > 0) {
 			<table>
@@ -83,15 +83,19 @@
 					</tr>
 				</tbody>
 			</table>
+			} else {
+				<p>
+					No games yet
+				</p>
 			}
+			@if(data._3) {
 			<a href="">Add new game</a>
 			<div>
 			@helper.form(action = helper.CSRF(routes.GameSeries.upload(data._1.id)), 'enctype -> "multipart/form-data"){
 				<input type="file" name="gamedata"/>
-				<p>
-					<input type="submit" value="Upload" />
-				</p>
+				<input type="submit" value="Upload" />
 			}
 			</div>
+			}
 		</div>
 	</div>

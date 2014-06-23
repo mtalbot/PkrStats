@@ -1,0 +1,34 @@
+@(data: Seq[(Seq[Player], Seq[(Game, Seq[GameResult])])])(implicit request: Request[_])
+
+@data.map{ fileUploadResult =>
+	<div>
+		<div>
+			<h3>Players</h3>
+			<ul class="sixColumn">
+				@fileUploadResult._1.map { player =>
+					<li>
+						@player.name
+					</li>	
+				}
+			</ul>
+		</div>
+		<div>
+			<h3>Results</h3>
+			@fileUploadResult._2.map{ gameDetails =>
+				<div>
+					<h4>@gameDetails._1.date.toString("y/M/d") hosted by @gameDetails._1.hosted</h4>
+					<ol>
+						@gameDetails._2.map { result =>
+							<li>
+								@result.player.name
+							</li>	
+						}
+					</ol>
+				</div>
+			}
+			<div>
+				
+			</div>
+		</div>
+	</div>
+}
