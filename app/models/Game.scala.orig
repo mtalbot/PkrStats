@@ -1,0 +1,22 @@
+package models
+
+import org.joda.time.DateTime
+<<<<<<< Updated upstream
+import models.gameTypes.GameType
+=======
+import models.baseModels.Model
+>>>>>>> Stashed changes
+
+case class Game(
+    val id: Long, 
+    val series: GameSeries, 
+    val hosted: String, 
+    val date: DateTime,
+<<<<<<< Updated upstream
+    val gametype: GameType
+=======
+    val gameType: GameType.GameType,
+    val stake: Double,
+    val currency: String
+>>>>>>> Stashed changes
+) extends Model[Long]

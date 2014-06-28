@@ -4,7 +4,7 @@
 	
 }{
 	<div>
-		@helper.form(routes.GameSeries.create) {
+		@helper.form(routes.GameSeriesControler.create) {
 				@helper.CSRF.formField
 				@helper.inputText(form("name"))
 				@helper.inputHidden(form("type"))

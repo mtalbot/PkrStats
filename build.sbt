@@ -25,7 +25,8 @@ libraryDependencies ++= Seq(
   "com.google.oauth-client" % "google-oauth-client-java6" % "1.18.0-rc",
   "org.mortbay.jetty" % "jetty" % "6.1.26",
   "com.google.apis" % "google-api-services-plus" % "v1-rev126-1.18.0-rc",
-  "postgresql" % "postgresql" % "9.1-901-1.jdbc4"
+  "postgresql" % "postgresql" % "9.1-901-1.jdbc4",
+  "org.reflections" % "reflections" % "0.9.8"
 )     
 
 play.Project.playScalaSettings

@@ -1,14 +1,14 @@
-@(player: Player, stats: Map[GameSeries, Map[Player, GameSeriesStatistic]])(implicit request: Request[_])
+@(player: Player, stats: Map[GameSeries, (Map[Player, GameSeriesStatistic], (Game, List[GameResult]))])(implicit request: Request[_])
 
 @main("Hi, " + player.name) {
 } {
 
 	<div id="gameSeriesStats">
 		@stats.map { stat => 
-			@dataViews.gameSeries(stat._1, stat._2, false)  
+			@dataViews.gameSeries(stat._1, stat._2._1, stat._2._2, false)  
 		}
 		<p>
-			<a href="@routes.GameSeries.newSeries">Create new</a>
+			<a href="@routes.GameSeriesControler.newSeries">Create new</a>
 		</p>
 	</div>
 

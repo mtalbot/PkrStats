@@ -49,7 +49,7 @@ object RequiresUnautheticated extends ActionBuilder[Request] {
       block(request)
     } else {
       Future {
-        Results.Redirect(controllers.routes.Player.index)
+        Results.Redirect(controllers.routes.PlayerControler.index)
       }
     }
 

@@ -65,7 +65,7 @@ class GameSeriesDAO extends Actor with RequiresDatabaseConnection {
       val positionGroup: (data.tables.GameResultTable, Column[Int]) => Column[Int] = normalize match {
         case None => { (group: data.tables.GameResultTable, gameSize: Column[Int]) => group.position }
         case Some(normal) => { (group: data.tables.GameResultTable, gameSize: Column[Int]) =>
-          ((group.position.asColumnOf[Double] / gameSize.asColumnOf[Double]) * normal.asInstanceOf[Double]).floor.asColumnOf[Int]
+          (((group.position.asColumnOf[Double]) / gameSize.asColumnOf[Double]) * normal.asInstanceOf[Double]).floor.asColumnOf[Int]
         }
       }
 

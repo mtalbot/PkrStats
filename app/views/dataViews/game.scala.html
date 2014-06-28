@@ -1,0 +1,9 @@
+@(data: (Game, List[GameResult]))(implicit request: Request[_])
+
+<ol>
+	@data._2.sortBy(_.position).map{ result =>
+		<li>
+			@result.player
+		</li>
+	}
+</ol>

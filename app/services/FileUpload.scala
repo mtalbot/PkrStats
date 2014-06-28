@@ -12,6 +12,7 @@ import models.Game
 import models.gameTypes.Cards
 import models.GameResult
 import scala.reflect.ClassTag
+import models.gameTypes.GameType
 
 object FileUpload {
   case class ParseFile(source: Seq[String], series: GameSeries) extends Operation[(Seq[Player], Seq[(Game, Seq[GameResult])])]
@@ -46,18 +47,24 @@ class FileUpload extends Actor {
 
       val data = partition(source.zipWithIndex, doubleNewLineSplit).map { value => (value, value.head._2) }
 
+      val truncate: String => String = input => input.
+          dropWhile(_ == '=').
+          toLowerCase.
+          trim 
+      
       val players = data.
         map(_._1.sortBy(_._2).drop(2)).
-        flatMap(a => a.map(_._1.dropWhile(_ == '=').toLowerCase)).
+        flatMap(a => a.map{ b => truncate(b._1)}).
         distinct.
+        zipWithIndex.
         map { playerName =>
-          (playerName, Player(-1, playerName, List(), None, None, None, None))
+          (playerName._1, Player(playerName._2 * -1, playerName._1, List(), None, None, None, None))
         }.
         toMap
 
       val games = data.map { game =>
         (game._2, (game._1.head._1.split(" ").head.split("/").map(_.toInt), game._1.drop(1).head._1.split("\t"), game._1.drop(2).zipWithIndex.map(_.swap).map { player =>
-          (player._1, player._2._1.startsWith("="), players(player._2._1.dropWhile(_ == '=').toLowerCase))
+          (player._1, player._2._1.startsWith("="), players(truncate(player._2._1)))
         }))
       }
 
@@ -73,13 +80,15 @@ class FileUpload extends Actor {
         case window if window.size >= 2 => window.head._2._1.last <= window.last._2._1.last
       }
 
+      val gameType = series.defaultGameType.getOrElse(Cards)
+
       val gameObjs = partition(sortedGames, yearSplit).
         reverse.
         zipWithIndex.
         flatMap { data =>
           data._1.map { game =>
             val date = new DateTime(year - data._2, game._2._1(1).toInt, game._2._1(0).toInt, 0, 0)
-            val gameObj = Game(-1, series, game._2._2.head, date, Cards)
+            val gameObj = Game(game._1 * -1, series, game._2._2.head, date, gameType)
 
             (gameObj, game._2._3.map { entry =>
               GameResult(-1, gameObj, entry._3, entry._1, None, None)

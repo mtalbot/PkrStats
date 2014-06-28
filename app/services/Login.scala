@@ -22,6 +22,7 @@ import com.google.api.services.plus.Plus
 import models.Player
 import org.joda.time.DateTime
 import scala.concurrent.Await
+import data.dao.DAO
 
 object Login {
   case class DoLogin(auth: AuthToken) extends Operation[Option[Player]]
@@ -83,18 +84,11 @@ class Login extends Actor with DbTimeout {
               Some(token._2.getRefreshToken),
               Some(DateTime.now().plusSeconds(token._2.getExpiresInSeconds.intValue)),
               Some(AuthenticationType.GooglePlus))
-          }.map { player =>
-            PlayerDAO.Insert(player)
-          }.flatMap { operation =>
-            (playerDAO ? operation).map { id =>
-              PlayerDAO.Get(operation.getResult(id))
-            }
-          }.flatMap { operation =>
-            (playerDAO ? operation).map { player => operation.getResult(player) }
-          }
+          }.flatMap { player => DAO(playerDAO, PlayerDAO.Insert(player)) }
+          .flatMap { playerID => DAO(playerDAO, PlayerDAO.Get(playerID)) }
           //we need to create a player
         }
-        case (token, Some(player)) => Future { player }
+        case (token, Some(player)) => Future { Option { player } }
       }.map { player =>
         returnPath ! player
       }

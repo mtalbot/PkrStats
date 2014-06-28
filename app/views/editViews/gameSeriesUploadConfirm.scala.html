@@ -1,34 +1,49 @@
-@(data: Seq[(Seq[Player], Seq[(Game, Seq[GameResult])])])(implicit request: Request[_])
+@(data: (GameSeries, Seq[Form[forms.GameSeriesUploadForm.GameSeriesUpload]]))(implicit request: Request[_])
 
-@data.map{ fileUploadResult =>
-	<div>
+<script src='@routes.Assets.at("javascript/seriesupload.js")' type="text/javascript"></script>
+@data._2.map{ fileUploadResult =>
+	@helper.form(helper.CSRF(routes.GameSeriesControler.completeUpload(data._1.id))){
 		<div>
 			<h3>Players</h3>
 			<ul class="sixColumn">
-				@fileUploadResult._1.map { player =>
-					<li>
-						@player.name
-					</li>	
+				@helper.repeat(fileUploadResult("players")){ player =>
+					<li data-player-id="@player("id").value" class="player">
+						@helper.inputHidden(player("id"))
+						@helper.inputHidden(player("name"))
+						@player("name").value
+						<div>
+						@helper.repeat(player("nicknames")) { nickname =>
+							a.k.a. @nickname.value
+							@helper.inputHidden(nickname)
+						}
+						</div>
+					</li>
 				}
 			</ul>
 		</div>
 		<div>
 			<h3>Results</h3>
-			@fileUploadResult._2.map{ gameDetails =>
+			@helper.repeat(fileUploadResult("games")){ game =>
 				<div>
-					<h4>@gameDetails._1.date.toString("y/M/d") hosted by @gameDetails._1.hosted</h4>
+					@helper.inputHidden(game("gameTypePath"))
+					@helper.inputHidden(game("hosted"))
+					@helper.inputHidden(game("playedOn"))
+					<h4>@game("playedOn").value hosted by @game("hosted").value</h4>
 					<ol>
-						@gameDetails._2.map { result =>
+						@helper.repeat(game("results")){ result =>
 							<li>
-								@result.player.name
-							</li>	
+								@helper.inputHidden(result("position"))
+								@helper.inputHidden(result("player"))
+								@helper.inputHidden(result("name"))
+								@result("name").value
+							</li>
 						}
 					</ol>
 				</div>
 			}
-			<div>
-				
-			</div>
 		</div>
-	</div>
+		<div>
+			<input type="submit" value="submit"/>
+		</div>
+	}
 }

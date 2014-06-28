@@ -39,12 +39,29 @@ import data.dao.GameDAO
 import models.Game
 import models.GameResult
 import models.Player
+import forms.GameSeriesUploadForm
+import forms.GameSeriesUploadForm.GameSeriesUpload
+import models.GameSeries
+import forms.PlayerForm
+import forms.GameForm
+import models.Player
+import models.GameResult
+import data.dao.DAO
+import scala.util.Success
+import scala.util.Success
+import data.dao.FriendDAO
+import models.Friend
+import components.JsonSerializer
 
-object GameSeries extends ContentNegotiatedControler with DbTimeout {
+object GameSeriesControler extends ContentNegotiatedControler with DbTimeout {
 
   val gameSeriesDAO = Akka.system.actorOf(Props[GameSeriesDAO])
   val gameDAO = Akka.system.actorOf(Props[GameDAO])
+  val playerDAO = Akka.system.actorOf(Props[PlayerDAO])
+  val friendDAO = Akka.system.actorOf(Props[FriendDAO])
   val fileUploadSrv = Akka.system.actorOf(Props[FileUpload])
+
+  implicit val serialiserForUpload = new JsonSerializer[(GameSeries, Seq[Form[GameSeriesUploadForm.GameSeriesUpload]])]
 
   def newSeries = CSRFAddToken {
     RequiresAuthentication { implicit request =>
@@ -52,23 +69,32 @@ object GameSeries extends ContentNegotiatedControler with DbTimeout {
     }
   }
 
-  def view(id: Long) = CSRFAddToken {
+  def view(id: Long, gameCountFilter: Option[Int], normalized: Option[Int]) = CSRFAddToken {
     RequiresAuthentication.async { implicit request =>
-      val op = GameSeriesDAO.Get(id)
-      val op2 = GameSeriesDAO.GetStatistics(id, None)
-      val series = (gameSeriesDAO ? op).map(op.getResult(_))
-      val stats = (gameSeriesDAO ? op2).map(op2.getResult(_))
-
-      implicit val serialiser = new JsonSerializer[(models.GameSeries, Map[Player, GameSeriesStatistic], Boolean)]
+      implicit val serialiser = new JsonSerializer[(models.GameSeries, Map[Player, GameSeriesStatistic], (Game, List[GameResult]), Boolean)]
 
       for {
-        seriesValue <- series
-        statsValue <- stats
-      } yield seriesValue.map { seriesVal =>
-        renderPartial[(models.GameSeries, Map[Player, GameSeriesStatistic], Boolean), HtmlFormat.Appendable](
-          Ok, "", Html.empty, views.html.dataViews.gameSeries.apply _, (seriesVal, statsValue, true))
-      }.getOrElse(NotFound(""))
+        seriesValue <- DAO(gameSeriesDAO, GameSeriesDAO.Get(id))
+        statsValue <- DAO(gameSeriesDAO, GameSeriesDAO.GetStatistics(id, normalized)).map { stats =>
+          stats.filter { stat =>
+            gameCountFilter.fold(true)(stat._2.gameCount > _)
+          }
+        }
+        lastGameValue <- DAO(gameDAO, GameDAO.GetLatest(id))
+      } yield seriesValue.flatMap { seriesVal =>
+        lastGameValue.map { lastGame =>
+          renderPartial(Ok, "", Html.empty, views.html.dataViews.gameSeries.apply _, (seriesVal, statsValue, lastGame, true))
+        }
+      }.getOrElse { NotFound("") }
     }
+  }
+
+  def viewAllGames(id: Long) = RequiresAuthentication.async { implicit request =>
+    implicit val serialiser = new JsonSerializer[List[(Game, List[GameResult])]]
+    
+  	  DAO(gameDAO, GameDAO.GetAllGames(id)).map{ game =>
+  	    renderPartial(Ok, "", Html.empty, views.html.dataViews.gameList.apply _, game)
+  	  }
   }
 
   def create() = CSRFCheck {
@@ -79,12 +105,10 @@ object GameSeries extends ContentNegotiatedControler with DbTimeout {
         }
       }, { seriesViewModel =>
         val log = Security.getChangedLoggedFromRequest(None)
-        val op = GameSeriesDAO.Insert(models.GameSeries(-1, seriesViewModel.name, None, log._1, log._2, log._3, log._4))
 
-        val result = (gameSeriesDAO ? op).
-          map(op.getResult(_)).
+        val result = DAO(gameSeriesDAO, GameSeriesDAO.Insert(models.GameSeries(-1, seriesViewModel.name, None, log._1, log._2, log._3, log._4))).
           map { id =>
-            Redirect(routes.GameSeries.view(id))
+            Redirect(routes.GameSeriesControler.view(id, None, None))
           }
 
         result
@@ -104,41 +128,99 @@ object GameSeries extends ContentNegotiatedControler with DbTimeout {
     }
   }
 
+  def completeUpload(id: Long) = CSRFCheck {
+    RequiresAuthentication.async(parse.urlFormEncoded(1024 * 1024 * 20)) { implicit request =>
+      DAO(gameSeriesDAO, GameSeriesDAO.Get(id)).flatMap { gameSeries =>
+        GameSeriesUploadForm.form.bindFromRequest.fold(
+          { formWithErrors =>
+            Future { renderPartial(BadRequest, "Please confirm upload", Html.empty, views.html.editViews.gameSeriesUploadConfirm.apply _, (gameSeries.get, Seq(formWithErrors))) }
+          },
+          { gameSeriesUpload =>
+            Future.sequence(gameSeriesUpload.
+              players.
+              filter(_.id < 0).
+              map { player =>
+                DAO(playerDAO, PlayerDAO.Insert(Player(player.id, player.name, player.nicknames.toList, None, None, None, None))).
+                  andThen {
+                    case Success(id) => DAO(playerDAO, PlayerDAO.Get(id)).map(_.map { newPlayer => DAO(friendDAO, FriendDAO.Insert(Friend(-1, request.user, newPlayer))) })
+                  }.
+                  map { result => (player.id, result) }
+              }).
+              map { newPlayers =>
+                (newPlayers ++ gameSeriesUpload.players.filter(_.id >= 0).map { player => (player.id, player.id) }).toMap
+              }.flatMap { allPlayers =>
+                Future.sequence(allPlayers.
+                  map { player =>
+                    DAO(playerDAO, PlayerDAO.Get(player._2)).
+                      map { result => (player._1, result) }
+                  })
+              }.
+              map { players =>
+                players.toMap
+              }.
+              flatMap { playersLookup =>
+                Future.sequence(gameSeriesUpload.
+                  games.
+                  map { game =>
+                    val gameentry = Game(-1, gameSeries.get, game.hosted, game.playedOn, Cards)
+                    val gameresults = for {
+                      gameResult <- game.results
+                      player <- playersLookup(gameResult.player)
+                    } yield GameResult(-1, gameentry, player, gameResult.position, None, None)
+
+                    DAO(gameDAO, GameDAO.Insert((gameentry, gameresults.toList)))
+                  })
+              }.map { result =>
+                Redirect(routes.GameSeriesControler.view(id, None, None))
+              }
+          })
+      }
+    }
+  }
+
   def upload(id: Long) = CSRFCheck {
-    RequiresAuthentication.async(parse.multipartFormData) { implicit request =>
+    RequiresAuthentication.async(parse.maxLength(1024 * 1024 * 20, parse.multipartFormData)) { implicit request =>
+      val series = DAO(gameSeriesDAO, GameSeriesDAO.Get(id))
 
-      val upload = Future.sequence(request.body.files.map { file =>
+      request.body.fold({ overSize => Future { EntityTooLarge("Request too large") } }, { body =>
+        val upload = Future.sequence(body.files.map { file =>
 
-        val op = GameSeriesDAO.Get(id)
+          val source = Future { Source.fromFile(file.ref.file).getLines.toSeq }
 
-        val source = Future { Source.fromFile(file.ref.file).getLines.toSeq }
+          val op2 = for {
+            seriesResult <- series
+            sourceResult <- source
+          } yield (seriesResult, sourceResult)
 
-        val series = (gameSeriesDAO ? op).
-          map { result => op.getResult(result) }
+          op2.flatMap { result =>
+            result._1.fold {
+              Future(Option.empty[Form[GameSeriesUploadForm.GameSeriesUpload]])
+            } { result2 =>
+              DAO(fileUploadSrv, FileUpload.ParseFile(result._2, result2)).
+                map { result =>
+                  Some(GameSeriesUploadForm.form.fill(GameSeriesUploadForm.GameSeriesUpload(
+                    result._1.map { player =>
+                      PlayerForm.PlayerViewModel(player.id, player.name, player.nicknames)
+                    },
+                    result._2.map { game =>
+                      GameForm.GameViewModel(game._1.gametype.toString, game._1.hosted, game._1.date, game._2.map { result =>
+                        GameForm.GameResultViewModel(result.position, result.player.id, result.player.name)
+                      })
+                    })))
+                }
+            }
+          }
+        }).map { uploads => uploads.filter(_.isDefined).map(_.get) }
 
-        val op2 = for {
-          seriesResult <- series
-          sourceResult <- source
-        } yield seriesResult.map(seriesData => FileUpload.ParseFile(sourceResult, seriesData))
-
-        op2.flatMap {
-          _.map { opResult =>
-            (fileUploadSrv ? opResult).
-              map(opResult.getResult(_))
-             }.get
+        upload.onFailure {
+          case ex: Throwable => throw ex
         }
+
+        for {
+          uploads <- upload
+          seriesData <- series
+        } yield renderPartial(Ok, "Please confirm upload", Html.empty, views.html.editViews.gameSeriesUploadConfirm.apply _, (seriesData.get, uploads))
       })
-      
-      upload.onFailure {
-        case ex: Throwable => throw ex
-      }
-      
-      implicit val serialiser = new JsonSerializer[Seq[(Seq[Player], Seq[(Game, Seq[GameResult])])]]
-      
-      upload.map { 
-        case Seq() => BadRequest("No files in upload")
-        case value => renderPartial(Ok, "Please confirm upload", Html.empty, views.html.editViews.gameSeriesUploadConfirm.apply _, value) 
-      }
     }
   }
 }

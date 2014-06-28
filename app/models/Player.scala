@@ -11,4 +11,6 @@ case class Player(
     val authId: Option[String], 
     val authToken: Option[String], 
     val authTokenExpiry: Option[DateTime],
-    val authType: Option[AuthenticationType]) extends Model[Long]
+    val authType: Option[AuthenticationType]) extends Model[Long] {
+  override def toString = name + nicknames.map(" aka " + _).fold("")(_ + _)
+}

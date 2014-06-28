@@ -3,16 +3,22 @@
 # ~~~~
 
 # Home page
-GET     /                           controllers.Application.index
-POST	/Authenticate				controllers.Application.authenticate
+GET     /                           				controllers.Application.index
+POST	/Authenticate								controllers.Application.authenticate
 
-GET		/Player						controllers.Player.index
+GET		/Player										controllers.PlayerControler.index
 
-GET		/GameSeries					controllers.GameSeries.newSeries
-GET		/GameSeries/:id				controllers.GameSeries.view(id: Long)
-POST	/GameSeries/:id/upload		controllers.GameSeries.upload(id: Long)
-POST	/GameSeries/:id				controllers.GameSeries.save(id: Option[Long])
-POST	/GameSeries/				controllers.GameSeries.create
+
+#GameSeries
+GET		/GameSeries									controllers.GameSeriesControler.newSeries
+GET		/GameSeries/:id								controllers.GameSeriesControler.view(id: Long, filter: Option[Int], normalized: Option[Int])
+POST	/GameSeries/:id/upload						controllers.GameSeriesControler.upload(id: Long)
+POST	/GameSeries/:id/completeUpload				controllers.GameSeriesControler.completeUpload(id: Long)
+POST	/GameSeries/:id								controllers.GameSeriesControler.save(id: Option[Long])
+POST	/GameSeries/								controllers.GameSeriesControler.create
+
+#Game
+GET		/GameSeries/:seriesid/Games/:gameid			controllers.GameController.view(seriesid: Long, gameid: Long) 
 
 # Map static resources from the /public folder to the /assets URL path
-GET     /assets/*file               controllers.Assets.at(path="/public", file)
+GET     /assets/*file               				controllers.Assets.at(path="/public", file)

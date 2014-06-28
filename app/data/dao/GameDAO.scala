@@ -4,12 +4,16 @@ import akka.actor.Actor
 import models._
 import data.tables._
 import data.helpers.DatabaseDriver.slickProfile._
+import data.helpers.DatabaseDriver.jodaDriver._
 import data.RequiresDatabaseConnection
 import data.tables.GameTable.{ mapper => gameMapper }
+import data.tables.GameSeriesTable.{ mapper => seriesMapper }
 import data.tables.PlayerTable.{ mapper => playerMapper }
 
 object GameDAO extends BasicOperations[Long, (Game, List[GameResult])] {
-  case class GetAllGamesForPlayer(player: Player) extends Operation[List[Game]]
+  case class GetAllGamesForPlayer(playerid: Long) extends Operation[List[(Game, List[GameResult])]]
+  case class GetLatest(seriesid: Long) extends Operation[Option[(Game, List[GameResult])]]
+  case class GetAllGames(seriesid: Long) extends Operation[List[(Game, List[GameResult])]]
 }
 
 class GameDAO extends Actor with RequiresDatabaseConnection {
@@ -17,8 +21,28 @@ class GameDAO extends Actor with RequiresDatabaseConnection {
   val getResultsQuery = GameResultTable.tableQuery.findBy(_.game.asColumnOf[Long])
 
   def receive = {
+    case GameDAO.GetAllGames(seriesID) => db.withSession{ implicit session => 
+    	val gamesQuery = GameTable.tableQuery.filter(_.series.asColumnOf[Long] === seriesID).map(_.id)
+    	
+    	val results = GameResultTable.tableQuery.filter(_.game.asColumnOf[Long].in(gamesQuery)).list
+    	
+    	sender ! results.groupBy(_.game).toList
+    }
+    case GameDAO.GetAllGamesForPlayer(playerid) => this.db.withSession { implicit session =>
+      sender ! GameResultTable.
+        tableQuery.
+        filter(_.game.in(GameResultTable.tableQuery.filter(_.player.asColumnOf[Long] === playerid).groupBy(_.game).map(_._1))).
+        list.
+        groupBy(_.game).
+        toList
+    }
+    case GameDAO.GetLatest(seriesid) => this.db.withSession { implicit session =>
+      sender ! GameTable.tableQuery.filter(_.series.asColumnOf[Long] === seriesid).sortBy(_.date)(_.desc).firstOption.map { game =>
+        (game, getResultsQuery(game.id).list)
+      }
+    }
     case GameDAO.Insert(obj) => this.db.withSession { implicit session =>
-      val game = (GameTable.tableQuery returning GameTable.tableQuery.map(f => f)) += obj._1
+      val game = getQuery(GameTable.tableQuery returning GameTable.tableQuery.map(f => f.id) += obj._1).first
 
       val results = obj._2.map {
         row =>

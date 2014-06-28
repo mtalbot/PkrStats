@@ -25,32 +25,33 @@ import play.api.libs.json._
 import components.RequiresAuthentication
 import data.dao.GameSeriesDAO
 import play.Logger
+import data.dao.GameDAO
+import data.dao.DAO
 
-object Player extends ContentNegotiatedControler with DbTimeout {
+object PlayerControler extends ContentNegotiatedControler with DbTimeout {
 
   val playerDAO = Akka.system.actorOf(Props[PlayerDAO])
   val gameSeriesDAO = Akka.system.actorOf(Props[GameSeriesDAO])
+  val gameDAO = Akka.system.actorOf(Props[GameDAO])
 
   def index = RequiresAuthentication.async { implicit request =>
-    val op = GameSeriesDAO.GetForPlayer(request.user)
-
-    val result = (gameSeriesDAO ? op).
+    val result = DAO(gameSeriesDAO, GameSeriesDAO.GetForPlayer(request.user)).
       flatMap { result =>
-        Future.sequence(op.
-          getResult(result).
+        Future.sequence(result.
           map { series =>
-            (series, GameSeriesDAO.GetStatistics(series.id, None))
-          }.map { opp =>
-            (gameSeriesDAO ? opp._2).map { res => (opp._1, opp._2.getResult(res)) }
+            for {
+              stats <- DAO(gameSeriesDAO, GameSeriesDAO.GetStatistics(series.id, None))
+              last <- DAO(gameDAO, GameDAO.GetLatest(series.id))
+            } yield last.map { lastGame => (series, (stats, lastGame)) }
           })
-      }.map { result =>
+      }.map(_.filter(_.isDefined).map(_.get)).map { result =>
         Ok(views.html.player(request.user, result.toMap))
       }
 
-     result.onSuccess{
-         case res => Logger.info("Found Records")
-     }
-      
+    result.onSuccess {
+      case res => Logger.info("Found Records")
+    }
+
     result
   }
 

@@ -28,6 +28,7 @@ import components.RequiresUnautheticated
 import play.filters.csrf._
 import services.Login
 import akka.dispatch.OnSuccess
+import data.dao.DAO
 
 object Application extends ContentNegotiatedControler with DbTimeout {
 
@@ -50,15 +51,8 @@ object Application extends ContentNegotiatedControler with DbTimeout {
             Future { BadRequest(views.html.index(AuthenticateForm.form)) }
           },
           authToken => {
-            val login = Login.DoLogin(authToken)
-
-            (loginSrv ? login).
-              map { player =>
-                login.
-                  getResult(player).
-                  map(Security.userToRequest(Results.Redirect(controllers.routes.Player.index), _)).
-                  getOrElse(Redirect(routes.Application.index))
-              }
+            DAO(loginSrv, Login.DoLogin(authToken)).
+              map(_.map(Security.userToRequest(Results.Redirect(controllers.routes.PlayerControler.index), _)).getOrElse(Redirect(routes.Application.index)))
           })
     }
   }

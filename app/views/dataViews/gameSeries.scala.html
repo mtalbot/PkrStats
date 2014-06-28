@@ -1,7 +1,7 @@
-@(data: (GameSeries, Map[Player, GameSeriesStatistic], Boolean))(implicit request: Request[_])
+@(data: (GameSeries, Map[Player, GameSeriesStatistic], (Game, List[GameResult]), Boolean))(implicit request: Request[_])
 
 	<div class="gameSeriesStat">
-		<h2><a href="@routes.GameSeries.view(data._1.id)">@data._1.name</a></h2>
+		<h2><a href="@routes.GameSeriesControler.view(data._1.id, None, None)">@data._1.name</a></h2>
 		<div>
 			@if(data._2.size > 0) {
 			<table>
@@ -9,7 +9,7 @@
 					<tr>
 						<th>Position</th>
 						@data._2.map{ stat => 
-							<td>@stat._1.name</td>
+							<td>@stat._1</td>
 						}
 					</tr>
 				</thead>
@@ -83,15 +83,22 @@
 					</tr>
 				</tbody>
 			</table>
+			<div>
+				<h3>Last Game</h3>
+				@views.html.dataViews.game(data._3)
+				<div>
+					<a href="">more...</a>
+				</div>
+			</div>
 			} else {
 				<p>
 					No games yet
 				</p>
 			}
-			@if(data._3) {
+			@if(data._4) {
 			<a href="">Add new game</a>
 			<div>
-			@helper.form(action = helper.CSRF(routes.GameSeries.upload(data._1.id)), 'enctype -> "multipart/form-data"){
+			@helper.form(action = helper.CSRF(routes.GameSeriesControler.upload(data._1.id)), 'enctype -> "multipart/form-data"){
 				<input type="file" name="gamedata"/>
 				<input type="submit" value="Upload" />
 			}
