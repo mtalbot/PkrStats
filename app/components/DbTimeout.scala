@@ -4,6 +4,6 @@ import akka.util.Timeout
 import scala.concurrent.duration._
 
 trait DbTimeout {
-  val timeoutDuration = 5 seconds
+  val timeoutDuration = 10 seconds
   implicit val timeout = Timeout(timeoutDuration)
 }

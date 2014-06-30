@@ -12,6 +12,7 @@ GET		/Player										controllers.PlayerControler.index
 #GameSeries
 GET		/GameSeries									controllers.GameSeriesControler.newSeries
 GET		/GameSeries/:id								controllers.GameSeriesControler.view(id: Long, filter: Option[Int], normalized: Option[Int])
+GET		/GameSeries/:id/Games						controllers.GameSeriesControler.viewAllGames(id: Long)
 POST	/GameSeries/:id/upload						controllers.GameSeriesControler.upload(id: Long)
 POST	/GameSeries/:id/completeUpload				controllers.GameSeriesControler.completeUpload(id: Long)
 POST	/GameSeries/:id								controllers.GameSeriesControler.save(id: Option[Long])

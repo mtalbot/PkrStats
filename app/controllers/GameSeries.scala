@@ -91,10 +91,10 @@ object GameSeriesControler extends ContentNegotiatedControler with DbTimeout {
 
   def viewAllGames(id: Long) = RequiresAuthentication.async { implicit request =>
     implicit val serialiser = new JsonSerializer[List[(Game, List[GameResult])]]
-    
-  	  DAO(gameDAO, GameDAO.GetAllGames(id)).map{ game =>
-  	    renderPartial(Ok, "", Html.empty, views.html.dataViews.gameList.apply _, game)
-  	  }
+
+    DAO(gameDAO, GameDAO.GetAllGames(id)).map { game =>
+      renderPartial(Ok, "", Html.empty, views.html.dataViews.gameList.apply _, game)
+    }
   }
 
   def create() = CSRFCheck {

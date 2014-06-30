@@ -9,6 +9,8 @@ import data.RequiresDatabaseConnection
 import data.tables.GameTable.{ mapper => gameMapper }
 import data.tables.GameSeriesTable.{ mapper => seriesMapper }
 import data.tables.PlayerTable.{ mapper => playerMapper }
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object GameDAO extends BasicOperations[Long, (Game, List[GameResult])] {
   case class GetAllGamesForPlayer(playerid: Long) extends Operation[List[(Game, List[GameResult])]]
@@ -21,12 +23,13 @@ class GameDAO extends Actor with RequiresDatabaseConnection {
   val getResultsQuery = GameResultTable.tableQuery.findBy(_.game.asColumnOf[Long])
 
   def receive = {
-    case GameDAO.GetAllGames(seriesID) => db.withSession{ implicit session => 
-    	val gamesQuery = GameTable.tableQuery.filter(_.series.asColumnOf[Long] === seriesID).map(_.id)
-    	
-    	val results = GameResultTable.tableQuery.filter(_.game.asColumnOf[Long].in(gamesQuery)).list
-    	
-    	sender ! results.groupBy(_.game).toList
+    case GameDAO.GetAllGames(seriesID) => db.withSession { implicit session =>
+      val theSender = sender
+      Future {
+        val gamesQuery = GameTable.tableQuery.filter(_.series.asColumnOf[Long] === seriesID).map(_.id)
+
+        GameResultTable.tableQuery.filter(_.game.asColumnOf[Long].in(gamesQuery)).list.groupBy(_.game).toList
+      }.map { results => theSender ! results }
     }
     case GameDAO.GetAllGamesForPlayer(playerid) => this.db.withSession { implicit session =>
       sender ! GameResultTable.

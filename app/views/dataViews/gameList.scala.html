@@ -1,1 +1,13 @@
 @(games: List[(Game, List[GameResult])])(implicit request: Request[_])
+
+@defining(games.sortBy(_._1.date.toDate)){ sortedGames =>
+	@views.html.helper.calender(sortedGames.head._1.date, sortedGames.last._1.date, sortedGames.map(_._1.date)) 
+
+	@sortedGames.map { gameDetails =>
+		<div id="@gameDetails._1.date.toString("y_M_d")" style="display: none">
+			<h3>@gameDetails._1.date.toString("y/M/d") played at @gameDetails._1.hosted</h3>
+			@views.html.dataViews.game(gameDetails)
+		</div>	
+	}	
+}
+

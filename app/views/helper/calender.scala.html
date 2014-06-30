@@ -1,0 +1,84 @@
+@(start: org.joda.time.DateTime, end: org.joda.time.DateTime, highlight: List[org.joda.time.DateTime])
+
+@defining(highlight.map { date =>
+	(date.getYear, date.getMonthOfYear(), date.getDayOfMonth())
+}){ highlights =>
+	@defining(components.Calender(start, end)){ cal =>
+	<div id="Calender">
+		<ul>
+			@cal._2.map { year =>
+				<li>
+					<a href="#cal-@year._1">@year._1</a>&nbsp;
+				</li>
+			}
+		</ul>
+		@cal._2.map { year =>
+			<div id="cal-@year._1">
+			@year._2.map { month =>
+				<div style="display: inline-block; float: left; border: 1px solid black; padding: 3px; margin: 5px;">
+					<h4 style="text-align: center; margin-top: 0; margin-bottom: 0; padding: 0.25em; border-bottom: 1px solid black;">
+						@month._2._1
+					</h4>
+					<table>
+						<thead>
+							<tr>
+								@cal._1.map { dayOfWeek =>
+									<th>
+										@dayOfWeek._2.substring(0, 3)
+									</th>
+								}
+							</tr>
+						</thead>
+						<tbody>
+							@Range(0, month._2._4 + 1).map { week => 
+								<tr>
+								@Range(1, 8).map { day =>
+									@defining(((week * 7) + day) - month._2._2){ dayOfMonth =>
+										@dayOfMonth match {
+											case day if day >= 0 && day < month._2._3 && highlights.contains ((year._1, month._1, dayOfMonth + 1)) => {
+												<td data-date="@{year._1}_@{month._1}_@{dayOfMonth + 1}" style="text-align: center;">
+													<a href="#@{year._1}_@{month._1}_@{dayOfMonth + 1}">
+														@{dayOfMonth + 1}
+													</a>
+												</td>
+											}
+											case day if day >= 0 && day < month._2._3 => {
+												<td data-date="@{year._1}_@{month._1}_@{dayOfMonth + 1}" style="text-align: center;">
+													@{dayOfMonth + 1}
+												</td>
+											}
+											case _ => {
+												<td></td>
+											}
+										}	
+									}
+									
+								}	
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>	
+			}
+			<div style="clear: both;"></div>
+			</div>
+		}
+	</div>
+	}
+}
+<script type="text/javascript">
+	$("#Calender").tabs({ hide: { effect: 'slide' }, show: { effect: 'slide' }});
+	$("#Calender table a").hover( function(event) {
+		var date = $(this).attr("href");
+		var container = $(date);
+		container.css("position", "fixed");
+		container.css("z-index", "10");
+		container.css("background-color", "white");
+		container.css("border", "1px solid black");
+		container.css("left", event.pageX);
+		container.css("top", event.pageY);
+		container.fadeIn();
+	}, function(event) {
+		$($(this).attr("href")).fadeOut();
+	});
+</script>
